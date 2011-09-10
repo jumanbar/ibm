@@ -195,56 +195,9 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   }
   vecinos[[1]] <- vecinos_t 
 }
-  # 0.4 Función de asignación de puntajes:
-{
-  pointsFun <- NULL
-  switch(ptsFun,
-    logitAuto={
-      logitA0 <- log(p_0 / (1 - p_1))
-      pointsFun <- function(x) {
-        logitA1 <- log((p_1 * (1 - p_0)) / (p_0 * (1 - p_1))) / psi[i]
-        Y <- (logitA0 + x * logitA1)
-        return(p_max * exp(Y) / (1 + exp(Y)))
-      }
-    },
-    logitManual={
-      pointsFun <- function(x) {
-        Y <- (logitA0 + x * logitA1)
-        return(p_max * exp(Y) / (1 + exp(Y)))
-      }
-    },
-      pointsFun <- logistica,
-    gompAuto1={
-      gompB <- log(p_0)
-      pointsFun <- function(x) {
-        gompC <- log(log(p_1) / log(p_0)) / psi[i]
-        return(p_max * exp(gompB * exp(gompC * x)))
-      }
-    },
-    gompAuto2={
-      gompB <- - 1
-      pointsFun <- function(x) {
-        gompC <- log(- log(p_1)) / psi[i]
-        return(p_max * exp(gompB * exp(gompC * x)))
-      }
-    },
-    gompManual={
-      pointsFun <- function(x) {
-        return(p_max * exp(gompB * exp(gompC * x)))
-      }
-    },
-    potencia={
-      pointsFun <-function(x) {
-        return((x - min(x) + 1) ^ ptExp)
-      }
-    })
+  # 0.4 Crear función de asignación de puntajes:
+  pointsFun <- makePointsFun(ptsFun)
 
-  if(is.null(pointsFun)) {
-    stop('Error: la variable ptsFun debe
-      llamarse con uno de los siguientes nombres:
-        "logitAuto", "logitManual", "gompAuto", "gompManual", "potencia"')
-  }
-}
   # Protocolo de importación de simulaciones anteriores
   im <- NULL
   if(!is.null(import)) {
