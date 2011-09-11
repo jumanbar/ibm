@@ -473,8 +473,8 @@ print.ibmStats <- function(x) {
       ' KJ/day\n\tBMR = ', round(BMR,3), ' KJ/day\tMEI = ', round(MEI, 3),
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0 = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
-      ' Kg\n\tTMC = ', TMC, ' Kg/day',
-      ' Kg\n\tREE = ', REE, ' KJ',
+      ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day',
+      ' Kg\n\tREE = ', round(REE, 3), ' KJ',
       sep=''))
     cat(paste('\n\tTAMAÑO: ', round(M, 3), ' Kg\n'))
     })
