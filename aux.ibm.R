@@ -91,56 +91,58 @@ logistica <- function(x, logitA0, logitA1) {
 makePointsFun <- function(name) {
 # name: character, nombre de la función
   fun <- NULL
-  foo <- eval(parse(text=name))
-  if(is.function(foo))
-    return(foo)
+  if(exists(name) && is.function(fun <- eval(parse(text=name))))
+    return(fun)
   else {
-    switch(name,
-      logitAuto={
-        logitA0 <- log(p_0 / (1 - p_1))
-        fun <- function(x) {
-          logitA1 <- log((p_1 * (1 - p_0)) / (p_0 * (1 - p_1))) / psi[i]
-          Y <- (logitA0 + x * logitA1)
-          return(p_max * exp(Y) / (1 + exp(Y)))
-        }
-      },
-      logitManual={
-        fun <- function(x) {
-          Y <- (logitA0 + x * logitA1)
-          return(p_max * exp(Y) / (1 + exp(Y)))
-        }
-      },
-        fun <- logistica,
-      gompAuto1={
-        gompB <- log(p_0)
-        fun <- function(x) {
-          gompC <- log(log(p_1) / log(p_0)) / psi[i]
-          return(p_max * exp(gompB * exp(gompC * x)))
-        }
-      },
-      gompAuto2={
-        gompB <- - 1
-        fun <- function(x) {
-          gompC <- log(- log(p_1)) / psi[i]
-          return(p_max * exp(gompB * exp(gompC * x)))
-        }
-      },
-      gompManual={
-        fun <- function(x) {
-          return(p_max * exp(gompB * exp(gompC * x)))
-        }
-      },
-      potencia={
-        fun <-function(x) {
-          return((x - min(x) + 1) ^ ptExp)
-        }
+    ambiente <- parent.frame()
+    assign('name', name, envir=ambiente)
+    fun <- with(ambiente, {
+      switch(name,
+        logitAuto={
+          logitA0 <- log(p_0 / (1 - p_1))
+          fun <- function(x) {
+            logitA1 <- log((p_1 * (1 - p_0)) / (p_0 * (1 - p_1))) / psi[i]
+            Y <- (logitA0 + x * logitA1)
+            return(p_max * exp(Y) / (1 + exp(Y)))
+          }
+        },
+        logitManual={
+          fun <- function(x) {
+            Y <- (logitA0 + x * logitA1)
+            return(p_max * exp(Y) / (1 + exp(Y)))
+          }
+        },
+          fun <- logistica,
+        gompAuto1={
+          gompB <- log(p_0)
+          fun <- function(x) {
+            gompC <- log(log(p_1) / log(p_0)) / psi[i]
+            return(p_max * exp(gompB * exp(gompC * x)))
+          }
+        },
+        gompAuto2={
+          gompB <- - 1
+          fun <- function(x) {
+            gompC <- log(- log(p_1)) / psi[i]
+            return(p_max * exp(gompB * exp(gompC * x)))
+          }
+        },
+        gompManual={
+          fun <- function(x) {
+            return(p_max * exp(gompB * exp(gompC * x)))
+          }
+        },
+        potencia={
+          fun <- function(x) {
+            return((x - min(x) + 1) ^ ptExp)
+          }
+        })
       })
   }
   if(!is.function(fun))
     stop('la variable "name" debe ser una función o uno de los
          siguientes strings: "logitAuto", "logitManual", "gompAuto",
          "gompManual", "potencia"')
-  environment(fun) <- parent.frame()
   return(fun)
 }
 
