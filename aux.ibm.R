@@ -1,5 +1,3 @@
-## v1.4
-
 ## FUNCIONES AUXILIARES PARA ibm
 
 bholt <- function(N, Ro=2, K=yield) {
