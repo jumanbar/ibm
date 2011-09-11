@@ -1,31 +1,37 @@
-## v1.4
+# v1.4
 
-ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
+ibm <- function(addGuys=FALSE,
+                # agrega pibes además de los que pone por parche
                 chMode='sampleAll', # max | sampleAll | quant
                 critQuant=.85,
-                mmd0=3 * 1.04, # DMD = Daily Movement Distance (Garland 1983) = 1.038 * M ^ 0.25 Km/day <- supongo que es un promedio...
+                mmd0=3 * 1.04,
+                # DMD = Daily Movement Distance (Garland 1983)
+                # = 1.038 * M ^ 0.25 Km/day <- supongo que es un promedio
                 mmdExp=1/4,
                 E_c=2.1e-8, # KJ
                 E_cr=21e-8, # KJ
                 m_c=3e-12, # Kg
                 gompB=-5.5,
                 gompC=-1.5,
-                grassMode='fixed', # fixed | semiFixed | bholt | randSprout (?)
+                grassMode='fixed',
+                # fixed | semiFixed | bholt | randSprout (?)
                 grassProb=0.5,
                 icl0=10.68, # KJ/km
                 iclExp=0.75, # 0.70
                 import=NULL,
                 lands=NULL,
-                ## Argumentos de landscape: sólo tienen efecto si lands = NULL:
-                ##### (inicio)
+                # Argumentos de landscape: sólo tienen efecto si
+                # lands = NULL:
+                # (inicio)
                 landsDim_=2,
                 landsDist_=1,
                 landsLmax_=2,
                 landsN_=3,
                 landsRdist_=3,
                 landsType='fractal', # fractal | regular | randUnif
-                ##### (fin)
-                levelSeeds=1, # integer -1 (random) | 0 | 1 | 2 ... (landsLmax_ - 1)
+                # (fin)
+                levelSeeds=1,
+                # integer -1 (random) | 0 | 1 | 2 ... (landsLmax_ - 1)
                 levelFocus=1, # integer 0 | 1 | 2 ... (landsLmax_ - 1)
                 logitA0=-2.5, # numeric
                 logitA1=.06, # numeric
@@ -42,7 +48,9 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
                 pm=0.05, # numeric, body mass fraction
                 plotPop=TRUE, # logical, plot population dynamics?
                 ptExp=3,
-                ptsFun='gompAuto1', # logitAuto | logitManual | gompAuto1 | gompAuto2 | gompManual | potencia
+                ptsFun='gompAuto1',
+                # logitAuto | logitManual | gompAuto1 | gompAuto2 |
+                # gompManual | potencia
                 ptsMode='PBB', # PBB | cualquier cosa
                 random=TRUE,
                 bmr0=293, # KJ/day ver detalles en doc.ibm.R
@@ -56,7 +64,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
                 trsExp=1,
                 verboso=TRUE,
                 yield=100) {
-  ## 0. INICIALIZACIONES
+  # 0. INICIALIZACIONES
   # Comienza el conteo de tiempo:
   ptm <- proc.time()[3]
   # tol: variable interna, para corregir errores de presición
@@ -68,14 +76,14 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   require(ellipse, quietly=TRUE)
 
   # 0.0 Salida de info:
-  if(!verboso) {
+  if (!verboso) {
     showSummary <- showTime <- showStats <- plotPop <- FALSE
   } 
-  if(verboso) cat('\n-- COMIENZA LA SIMULACIÓN --\n\n')
+  if (verboso) cat('\n-- COMIENZA LA SIMULACIÓN --\n\n')
   # Estadísticas (de adultos)(sólo si showStats==TRUE):
 
   # Coordenadas de los parches
-  if(is.null(lands) || missing(lands)) {
+  if (is.null(lands) || missing(lands)) {
     lands <- mklands(dim_=landsDim_,
                      dist_=landsDist_,
                      lmax_=landsLmax_,
@@ -91,17 +99,18 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   trsMax <- trs0 * M ^ trsExp
   trsMin <- trs0 * m0 ^ trsExp
   minBio <- m0 + (trsMin * E_cr / E_c)
-  B_c    <- 2 * m_c * bmr0 / M ^ (1 / 4) #-> asume que k promedio es 2 (i.e.: average energy intake = 2 * BMR) 
-  ##->El tejido de reserva tiene un valor diferente, del punto de vista
-  ##  energético, al tejido de normal. Para simplificar los cálculos,
-  ##  el valor 'minBio' es la suma del tejido normal y de reserva de un
-  ##  recién nacido, pero todo en el equivalente a tejido normal.
-  ##  Esta medida sirve para calcular en número de descendientes de cada
-  ##  adulto en el momento de reproducción.
+  B_c    <- 2 * m_c * bmr0 / M ^ (1 / 4)
+  #->Asume que k promedio es 2 (i.e.: average energy intake = 2 * BMR) 
+  #->El tejido de reserva tiene un valor diferente, del punto de vista
+  #  energético, al tejido de normal. Para simplificar los cálculos,
+  #  el valor 'minBio' es la suma del tejido normal y de reserva de un
+  #  recién nacido, pero todo en el equivalente a tejido normal.
+  #  Esta medida sirve para calcular en número de descendientes de cada
+  #  adulto en el momento de reproducción.
   cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
 
   indStats <- stats()
-  if(showStats && is.null(import)) {
+  if (showStats && is.null(import)) {
     print(indStats)
     print(lands)
     cat(paste('\nYIELD = ', round(yield, 2), '\n', sep=''))
@@ -109,36 +118,36 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
 }
   # 0.2 Individuos iniciales
 {
-  if(levelFocus >= landsLmax_) levelFocus <- landsLmax_ - 1
+  if (levelFocus >= landsLmax_) levelFocus <- landsLmax_ - 1
   #-->Si no se hace esta corrección va a dar error
-  if(levelSeeds < 0) {
+  if (levelSeeds < 0) {
     N       <- N_0
     nombres <- 1:N
     pos     <- sample(nrow(xypasto), N, replace=TRUE)
     xypos   <- xypasto[pos,]
-    if(length(pos) == 1) {
+    if (length(pos) == 1) {
       xypos <- matrix(xypos, ncol=2)
     }
   } else {
     npatch  <- length(lands$areas[[levelSeeds + 1]])
     N       <- npatch
     nombres <- 1:N
-    if(levelSeeds == 0) {
+    if (levelSeeds == 0) {
       pos <- 1:N
     } else {
       pos <- numeric(npatch)
-      for(i in 1:npatch) {
+      for (i in 1:npatch) {
         cuales <- which(lands$belong[,levelSeeds + 1] == i)
         pos[i] <- lands$belong[sample(cuales, 1),1]
       }      
     }
     xypos <- xypasto[pos,]
-    if(length(pos) == 1) {
+    if (length(pos) == 1) {
       xypos <- matrix(xypos, ncol=2)
     }
   }
 
-  if(addGuys) {
+  if (addGuys) {
     more    <- N_0 - N
     N       <- N_0
     nombres <- 1:N
@@ -150,7 +159,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   foodAcum <- numeric(N)
   m        <- rep.int(M, N)
 #~   m        <- rep.int(m0, N)
-#~   m        <- runif(N, m0, M)
+#~   m        <- runif (N, m0, M)
   reser    <- trs0 * m ^ trsExp
   babyBiom <- numeric(N)
   optPatch <- numeric(N) * NA
@@ -188,10 +197,12 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   inmigra_t <- vector('list', npatch)
   vecinos   <- vector('list', tfinal)
   vecinos_t <- vector('list', npatch)
-  for(v in 1:npatch) {
+  for (v in 1:npatch) {
     emigra_t[[v]]  <- 0
     inmigra_t[[v]] <- 0
-    vecinos_t[[v]] <- nombres[inpip(xypos, lands$areas[[levelFocus + 1]][[v]], bound=TRUE)]
+    vecinos_t[[v]] <- nombres[inpip(xypos,
+                                    lands$areas[[levelFocus + 1]][[v]],
+                                    bound=TRUE)]
   }
   vecinos[[1]] <- vecinos_t 
 }
@@ -200,12 +211,12 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
 
   # Protocolo de importación de simulaciones anteriores
   im <- NULL
-  if(!is.null(import)) {
+  if (!is.null(import)) {
       im <- import
       extra_t <- im$tiempo
       tf <- tfinal
       pr <- im$parms[names(im$parms) != 'import']
-      for(i in 1:length(pr)) {
+      for (i in 1:length(pr)) {
         assign(names(pr)[[i]], pr[[i]])
       }
       t_ <- length(im$pop)
@@ -218,7 +229,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       minBio  <- m0 + (trsMin * E_cr / E_c)
       B_c     <- 2 * m_c * bmr0 / M ^ (1 / 4)
       cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
-      if(showStats) {
+      if (showStats) {
         print(im$indStats)
         print(im$lands)
         cat(paste('\nYIELD = ', round(yield, 2), '\n', sep=''))
@@ -265,15 +276,15 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       t_ <- t_ + 1
   }
 
-  ## COMIENZAN LAS ITERACIONES
+  # COMIENZAN LAS ITERACIONES
   # Seguimiento de las iteraciones
-  if(showTime) {
+  if (showTime) {
     cat(paste('\n Tiempo (de ', tfinal, '):\n>>',
            t_ - 1, ' N=', pop[t_ - 1], ' ', sep=''))
   }
   
-  while(pop[t_ - 1] > 0 && t_ <= tfinal) {
-    ## Alometrías et al.:
+  while (pop[t_ - 1] > 0 && t_ <= tfinal) {
+    # Alometrías et al.:
     icl <- icl0 * m ^ iclExp
     mmd <- mmd0 * m ^ mmdExp -> restoMov
     mmc <- mmd * icl
@@ -283,7 +294,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
     tmc <- B_c * m / E_cr
     #-->tmc = "total maitenance cost"
     trs <- trs0 * m ^ trsExp
-    if(ptsMode == 'PBB') {
+    if (ptsMode == 'PBB') {
       psi <- npsi * mei * m_c / E_cr - tmc
     } else {
       psi <- trs + npsi * mei * m_c / E_cr - tmc
@@ -295,7 +306,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
 
     obtEner   <- numeric(N)
     
-    if(random) {
+    if (random) {
       # Para que el orden en q actúan sea aleatorio:
       index <- sample(N)
     } else {
@@ -303,55 +314,57 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       index <- 1:N
     }
 
-    for(i in index) {
+    for (i in index) {
 
-      ## 1. MOVIMIENTO Y ALIMENTACIÓN
+      # 1. MOVIMIENTO Y ALIMENTACIÓN
       goRand <- FALSE
       stay   <- FALSE
       condA  <- sum(pasto) > tol
       condB  <- TRUE
       cfa    <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
 
-      while(condA && condB) {
+      while (condA && condB) {
         xy <- xypos[i,]
-        if(is.na(optPatch[i])) {
-          ## 1.1 Elección del próximo parche
+        if (is.na(optPatch[i])) {
+          # 1.1 Elección del próximo parche
           cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
           visibles <- inpip(xypasto, cfa_i, bound=TRUE)
 
-          if(length(visibles) >= 1) {
-            ####### Elección de parche (inicio)
-            ## Distancia y cantidad de recursos:
+          if (length(visibles) >= 1) {
+            #### Elección de parche (inicio)
+            # Distancia y cantidad de recursos:
             dist2visib <- distancias(xy, xypasto[visibles,])
             ratioDist  <- dist2visib / mmd[i]
             ratioRsrc  <- pasto[visibles] / mei[i]
             #-->(Rsrc = resource)
             flrsrc <- floor(ratioRsrc)
     
-            ## Costos:
+            # Costos:
             costPerDist <- ratioDist * mmc[i] * m_c / E_cr
             costPerMant <- pmax(ratioDist, ratioRsrc) * tmc[i]
-  # ~          if(any(costPerMant == - Inf)) browser()
+  # ~          if (any(costPerMant == - Inf)) browser()
   
-            ## Ganancias:
+            # Ganancias:
             plus <- ratioRsrc * mei[i] * m_c / E_cr
     
-            ## Balance de Biomasa:
+            # Balance de Biomasa:
             PBB <- c(plus - (costPerDist + costPerMant),
               - restoMov[i] * icl[i], # Balance corresp. a mov. aleatorio.
-              - tmc[i] * max(restoMov[i] / mmd[i], 1 - foodAcum[i] / mei[i])) # Balance corresp. a quedarse en el lugar.
+              - tmc[i] * max(restoMov[i] / mmd[i],
+              1 - foodAcum[i] / mei[i]))
+              # Balance corresp. a quedarse en el lugar.
             #-->(PBB = Partial Biomass Balance)
     
-            ## Incluír el costo extra por usar reservas (si PBB < 0):
+            # Incluír el costo extra por usar reservas (si PBB < 0):
             PBB[PBB < 0] <- PBB[PBB < 0] / (1 - ruc)
   # ~          deltaBiom <- PBB / E_cr
   # ~          deltaBiom[PBB < 0] <- deltaBiom[PBB < 0] / (1 - ruc)
   
   # ~  browser()
     
-            ## Asignación de puntajes & elección de parche:
+            # Asignación de puntajes & elección de parche:
             input <- PBB
-            if(ptsMode != 'PBB') {
+            if (ptsMode != 'PBB') {
               input <- input + trs[i]
             }
             puntaje <- pointsFun(input)
@@ -362,26 +375,26 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
               },
               max={
                 choiceNum <- which(puntaje == max(puntaje))
-                if(length(choiceNum) > 1) {
+                if (length(choiceNum) > 1) {
                   choiceNum <- sample(choiceNum, 1)
                 }
               },
               quant={
                 valor <- quantile(puntaje, critQuant)
-                if(sum(puntaje >= valor) > 1) {
+                if (sum(puntaje >= valor) > 1) {
                   choiceNum <- sample((1:length(puntaje))[puntaje >= valor], 1)
                 } else {
                   choiceNum <- which(puntaje >= valor)
                 }
               })
-            if(PBB[choiceNum] == 0) break
-            ####### Elección de parche (fin)
+            if (PBB[choiceNum] == 0) break
+            #### Elección de parche (fin)
           } else {
             PBB <- c(
               - restoMov[i] * icl[i],
               - tmc[i])
             input <- PBB
-            if(ptsMode != 'PBB') {
+            if (ptsMode != 'PBB') {
               input <- input + trs[i]
             }
             puntaje <- pointsFun(input)
@@ -389,17 +402,17 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
             choiceNum <- sample(1:2, 1, prob=puntaje)
           }
 
-          if(choiceNum == length(visibles) + 1) {
+          if (choiceNum == length(visibles) + 1) {
             goRand <- TRUE
           }
-          if(choiceNum == length(visibles) + 2) {
+          if (choiceNum == length(visibles) + 2) {
             stay <- TRUE
           }
-          if(!any(goRand, stay)) {
+          if (!any(goRand, stay)) {
             optPatch[i] <- visibles[choiceNum]
             dist2patch  <- dist2visib[choiceNum]
-            ## Si veía un sólo parche y estaba sobre él, no más turno:
-            if(length(visibles) == 1 && dist2patch < tol) {
+            # Si veía un sólo parche y estaba sobre él, no más turno:
+            if (length(visibles) == 1 && dist2patch < tol) {
               optPatch[i] <- NA
               break
             }
@@ -408,30 +421,31 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
           dist2patch <- distancias(xy, xypasto[optPatch[i],])
         }
 
-        ## 1.2.a Movimiento al azar
-        if(goRand) {
+        # 1.2.a Movimiento al azar
+        if (goRand) {
           xyRand      <- cfaRand[sample(60, 1), ]
           xypos[i,]   <- xy + restoMov[i] * xyRand
           restoMov[i] <- 0
           condB       <- FALSE
 
         }
-        if(stay) {
+        if (stay) {
           condB <- FALSE
         }
-        if(!any(goRand, stay)) {
+        if (!any(goRand, stay)) {
 
-          ## 1.2.b Movimiento hacia el parche
+          # 1.2.b Movimiento hacia el parche
           # Si llega al parche
-          if(restoMov[i] - dist2patch > tol) {
-            ## 1.3 Comer del parche
+          if (restoMov[i] - dist2patch > tol) {
+            # 1.3 Comer del parche
             food <- feed(foodAcum[i], mei[i], pasto[optPatch[i]])
-  # ~            obtEner[i] <- obtEner[i] + food * (1 - (food * sdaMax / mei[i]))
-            ## Esta línea se comentó por un efecto inesperado:
-            ## Los individuos obtienen más energía si hacen varias comidas de valor
-            ## intermedio que si hacen una sóla comida con el máximo posible de energía.
-            ## Considerando que esto no parece muy realista ni útil, se optó por que
-            ## los individuos hacen el procesamiento de la energía 1 vez por turno.
+        ## obtEner[i] <- obtEner[i] + food * (1 - (food * sdaMax / mei[i]))
+            # Esta línea se comentó por un efecto inesperado:
+            # Los individuos obtienen más energía si hacen varias comidas
+            # de valor intermedio que si hacen una sóla comida con el
+            # máximo posible de energía. Considerando que esto no parece
+            # muy realista ni útil, se optó por que los individuos hacen el
+            # procesamiento de la energía 1 vez por turno.
   
             foodAcum[i]        <- foodAcum[i] + food
             pasto[optPatch[i]] <- pasto[optPatch[i]] - food
@@ -463,15 +477,15 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
     extraBiom <- reser - trs
     reser[extraBiom > 0] <- trs[extraBiom > 0]
     extraBiom[extraBiom < 0] <- 0
-    for(i in 1:npatch) {
+    for (i in 1:npatch) {
       vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
       vecinos_t[[i]] <- nombres[vec]
       emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]], vecinos_t[[i]]))
       inmigra_t[[i]] <- setdiff(vecinos_t[[i]], vecinos[[t_ - 1]][[i]])
     }
 
-    for(i in 1:npatch) {
-        for(j in (1:npatch)[-i]) {
+    for (i in 1:npatch) {
+        for (j in (1:npatch)[-i]) {
         common <- intersect(emigra_t[[j]],  # parche de origen
                          vecinos_t[[i]]) # parche de destino
         migra_t[i,j] <- length(common)
@@ -484,7 +498,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
     emigra[[t_]]  <- emigra_t
     inmigra[[t_]] <- inmigra_t
 
-    ## 2. REGENERACIÓN DE PASTO
+    # 2. REGENERACIÓN DE PASTO
     switch(grassMode,
       fixed={
         # Los parches con poco pasto (pero > 0), crecen con dinámica bholt.
@@ -493,7 +507,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       semiFixed={
         # Los parches con poco pasto (pero > 0), crecen con dinámica bholt.
         raleados <- which(pasto > tol & pasto < yield)
-        if(length(raleados) > 0) {
+        if (length(raleados) > 0) {
           pasto[raleados] <- bholt(pasto[raleados], Ro=pastoRo, K=yield)  
         }
         # Los parches sin pasto vuelven a su valor de yield automáticamente.
@@ -507,7 +521,7 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       randSprout={
         # Los parches con poco pasto (pero > 0), crecen con dinámica bholt.
         raleados <- which(pasto > tol & pasto < yield)
-        if(length(raleados) > 0) {
+        if (length(raleados) > 0) {
           pasto[raleados] <- bholt(pasto[raleados], Ro=pastoRo, K=yield)  
         }
         # Plantaría semillas aleatoriamente sobre los parches
@@ -517,12 +531,12 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
         pasto[tomuer & luckies] <- yield
       })
 
-    ## 3. SUPERVIVENCIA
+    # 3. SUPERVIVENCIA
     alive      <- (1:N)[!(reser < 0)]
     N          <- length(alive)
     deaths[t_] <- sum(reser < 0)
 
-    if(N > 0) {
+    if (N > 0) {
       oldFoodAcum <- foodAcum[alive]
       #-->Valores para poner en el objeto 'record'
       extraBiom <- extraBiom[alive]
@@ -531,19 +545,21 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       m         <- m[alive]
 #~       pos       <- pos[alive]
       xypos     <- matrix(xypos[alive,], ncol=2)
-      ## 6. CRECIMIENTO Y REPRODUCCIÓN
+      # 6. CRECIMIENTO Y REPRODUCCIÓN
       nuevos <- 0
-      m <- m + (extraBiom) * E_cr / E_c ## Se suma la biomasa extra en valores equivalentes a tejido normal
+      m <- m + (extraBiom) * E_cr / E_c
+      # Se suma la biomasa extra en valores equivalentes a tejido normal
       tooBig <- (1:N)[m > M]
-      if(any(tooBig)) {
+      if (any(tooBig)) {
         babyBiom[tooBig] <- babyBiom[tooBig] + (m[tooBig] - M)
-# ~        extraBiom[tooBig] <- (m[tooBig] - M) * E_c / E_cr ## Desechado: se convierte de vuelta a tejido de reserva
+#         extraBiom[tooBig] <- (m[tooBig] - M) * E_c / E_cr
+#         Desechado: se convierte de vuelta a tejido de reserva
         m[tooBig] <- M
         crios     <- floor(babyBiom / minBio)
 # ~        reprod <- (1:N)[tooBig][babyBiom[tooBig] >= minBio]
-# ~        if(any(is.na(reprod))) browser()
-# ~        if(any(reprod)) {
-        if(any(crios > 0)) {
+# ~        if (any(is.na(reprod))) browser()
+# ~        if (any(reprod)) {
+        if (any(crios > 0)) {
 # ~          crios <- floor(babyBiom[reprod] / minBio)
           reprod <- (1:N)[crios > 0]
           crios  <- crios[reprod]
@@ -580,8 +596,8 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
     births[t_] <- nuevos
     N          <- N + nuevos
 
-    ## 7. ACTUALIZACIÓN DE LOS REGISTROS (inicio)
-    if(N > 0)
+    # 7. ACTUALIZACIÓN DE LOS REGISTROS (inicio)
+    if (N > 0)
       record[[t_]] <- data.frame(foodAcum=c(oldFoodAcum, numeric(nuevos)),
                 name=nombres, m=m,
                 reser=reser, #pos=pos,
@@ -591,17 +607,17 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
 # ~    popAll[t_] <- N
 # ~    pop[t_]    <- sum(record[[t_]]$reser > (1.5 * minres))
     pop[t_] <- N
-    ## ACTUALIZACIÓN DE LOS REGISTROS (fin)
+    # ACTUALIZACIÓN DE LOS REGISTROS (fin)
 
-    if(showTime) {
+    if (showTime) {
       cat(paste('| ', t_, ' N=', pop[t_], ' ', sep=''))
     }
     t_ <- t_ + 1
   }
 
-  if(showTime) cat('\n FIN\n')
+  if (showTime) cat('\n FIN\n')
 
-  ## 8. PREPARACIÓN DE LA SALIDA (inicio)
+  # 8. PREPARACIÓN DE LA SALIDA (inicio)
   t_       <- t_ - 1
   pop      <- pop[1:t_]
   record   <- record[1:t_]
@@ -611,16 +627,16 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
   ibmpar   <- formals(ibm)
   parms    <- lapply(ibmpar, eval, envir=ibmpar)
   llama    <- match.call()
-  if(!is.null(import)) {
+  if (!is.null(import)) {
     llama <- im$call
     llama['tfinal'] <- tfinal
 
-############ ACAAAAAAAAA
+###### ACAAAAAAAAA
 
   }
   cl <- as.list(llama)
-  if(length(cl) > 1) {
-    for(k in 2:length(cl)) {
+  if (length(cl) > 1) {
+    for (k in 2:length(cl)) {
       parms[names(cl)[k]] <- eval(cl[[k]])
     }
   }
@@ -656,18 +672,15 @@ ibm <- function(addGuys=FALSE, # agrega pibes además de los que pone por parche
       totalMigra=totalMigra,
       vecinos=vecinos)
   class(out) <- c('ibm', class(out))
-  ## PREPARACIÓN DE LA SALIDA  (fin)
+  # PREPARACIÓN DE LA SALIDA  (fin)
 
-  if(showSummary)  print(out, stats=FALSE)
+  if (showSummary)  print(out, stats=FALSE)
 
-  if(plotPop) {
+  if (plotPop) {
     plot(out, 'pop')
   }
   
   return(out)
-} ### FIN DE LA FUNCIÓN
-
-###############################################
-###############################################
+}
 
 source('aux.ibm.R')

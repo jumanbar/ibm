@@ -1,78 +1,78 @@
-## FUNCIONES AUXILIARES PARA ibm
+# FUNCIONES AUXILIARES PARA ibm
 
 bholt <- function(N, Ro=2, K=yield) {
-## Con Ro = 2 en 20 iteraciones llega al máximo (No=1), al menos
-## en el rango de valores de yield entre 3000 y 50000
-  ## K = (Ro - 1) * M
+# Con Ro = 2 en 20 iteraciones llega al máximo (No=1), al menos
+# en el rango de valores de yield entre 3000 y 50000
+  # K = (Ro - 1) * M
   M <- K / (Ro - 1)
   return(Ro * N / (1 + N / M))
 }
 
-###############################################
-###############################################
+########################
+########################
 
-## Para ver la dinámica:
+# Para ver la dinámica:
 bholtDyn <- function(No=1, Ro=2, K=1e4, tfinal=20, ...) {
-  ## K = (Ro - 1) * M 
+  # K = (Ro - 1) * M 
   M <- K / (Ro - 1)
   out <- vector('numeric', length=tfinal)
   out[1] <- No
-  for(t in 2:tfinal) {
+  for (t in 2:tfinal) {
     out[t] <- Ro * out[t-1] / (1 + out[t-1] / M)
   }
   plot(out, ...)
   return(out)
 }
 
-###############################################
-###############################################
+########################
+########################
 
-## Para ver la dinámica:
+# Para ver la dinámica:
 bholtDyn2 <- function(No=1, Ro=2, M=1, tfinal=20, ...) {
-  ## K = (Ro - 1) * M 
+  # K = (Ro - 1) * M 
 #~   M <- K / (Ro - 1)
   out <- vector('numeric', length=tfinal)
   out[1] <- No
-  for(t in 2:tfinal) {
+  for (t in 2:tfinal) {
     out[t] <- Ro * out[t-1] / (1 + out[t-1] / M)
   }
   plot(out, ...)
   return(out)
 }
-###############################################
-###############################################
+########################
+########################
 distancias <- function(xyInd, xyParches) 
 {
-  if(!is.matrix(xyParches)) xyParches <- matrix(xyParches, ncol=2)
+  if (!is.matrix(xyParches)) xyParches <- matrix(xyParches, ncol=2)
   out <- sqrt((xyParches[,1] - xyInd[1]) ^ 2 + (xyParches[,2] - xyInd[2]) ^ 2)
     return(out)
 }
 
-###############################################
-###############################################
+########################
+########################
 
 enerObt <- function(x, sdaMax=sdaMax, mei=mei[i]) x * (1 - x * sdaMax / mei)
 
-###############################################
-###############################################
+########################
+########################
 
 feed <- function(foodAcum, mei, pasto) {
   return(ifelse(foodAcum + pasto <= mei, pasto, mei - foodAcum))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 gompertz <- function(x, p_max, gompB, gompC) {
-## ej: curve(gompertz(x, 1, -5.5, -1.5), from=-1, to=8, ylim=c(0,1)); ejes()
+# ej: curve(gompertz(x, 1, -5.5, -1.5), from=-1, to=8, ylim=c(0,1)); ejes()
 # En modo Auto:
 #   gompB <- log(p_0)
 #   gompC <- log(log(p1) / log(p0)) / psi[i]
   return(p_max * exp(gompB * exp(gompC * x)))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 logistica <- function(x, logitA0, logitA1) {
 # ~> curve(logit(x, -2.5, .06), from=-10, 10)
@@ -83,13 +83,13 @@ logistica <- function(x, logitA0, logitA1) {
   return(p_max * exp(Y) / (1 + exp(Y)))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 makePointsFun <- function(name) {
 # name: character, nombre de la función
   fun <- NULL
-  if(exists(name) && is.function(fun <- eval(parse(text=name))))
+  if (exists(name) && is.function(fun <- eval(parse(text=name))))
     return(fun)
   else {
     ambiente <- parent.frame()
@@ -137,19 +137,19 @@ makePointsFun <- function(name) {
         })
       })
   }
-  if(!is.function(fun))
+  if (!is.function(fun))
     stop('la variable "name" debe ser una función o uno de los
          siguientes strings: "logitAuto", "logitManual", "gompAuto",
          "gompManual", "potencia"')
   return(fun)
 }
 
-###############################################
-###############################################
+########################
+########################
 
 mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
-## ejemplo:
-##   plot(mklands())
+# ejemplo:
+#   plot(mklands())
   require(splancs, quietly=TRUE)
   require(ellipse, quietly=TRUE)
   n_ <- round(n_)
@@ -159,19 +159,19 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
   belong <- as.data.frame(matrix(1:npatch, nrow=npatch, ncol=lmax_))
   names(belong) <- names(areas) <- paste('l', 0:(lmax_ - 1), sep='')
 
-  if(lmax_ <= 1) {
+  if (lmax_ <= 1) {
     areas <- vector('list', 1)
-    if(npatch == 1) {
+    if (npatch == 1) {
       coordsAll <- matrix(0, 1, 2)
       pos       <- 0
     }
   }
 
-  if(type == 'fractal' && npatch > 1) {
+  if (type == 'fractal' && npatch > 1) {
     dists_ <- NULL
     seg <- dists_
-    for(l_ in 1:lmax_) {
-      for(i in 1:(n_ - 1)) {
+    for (l_ in 1:lmax_) {
+      for (i in 1:(n_ - 1)) {
         dists_ <- c(dists_, c(dist_ * rdist_ ^ (l_ - 1), seg))
       }
       seg <- dists_
@@ -179,39 +179,39 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
     pos <- c(0, cumsum(dists_))
   }
 
-  if(type == 'regular' && npatch > 1) {
+  if (type == 'regular' && npatch > 1) {
     n_ <- (n_ ^ dim_) ^ lmax_
     pos <- 0:n_ * dist_
   }
 
-  if(type == 'randUnif' && npatch > 1) {
-    x  <- sort(runif(npatch, 0, (n_ - 1) * dist_))
-    y  <- runif(npatch, 0, (n_ - 1) * dist_)
+  if (type == 'randUnif' && npatch > 1) {
+    x  <- sort(runif (npatch, 0, (n_ - 1) * dist_))
+    y  <- runif (npatch, 0, (n_ - 1) * dist_)
     coordsAll <- cbind(x=x, y=y)
     pos <- NULL
   }
 
-  if(type != 'randUnif' && npatch > 1) {
+  if (type != 'randUnif' && npatch > 1) {
     npos      <- length(pos)
     coordsAll <- matrix(nrow=npatch, ncol=2)
 
     p <- 0:npos * npos + 1
-    for(i in 1:npos) {
+    for (i in 1:npos) {
       coordsAll[p[i]:(p[i + 1] - 1),] <- cbind(pos[i], pos)
     }
 
-    if(type == 'fractal' && lmax_ > 1) {
+    if (type == 'fractal' && lmax_ > 1) {
 
-      for(l_ in 1:(lmax_ - 1)) {
+      for (l_ in 1:(lmax_ - 1)) {
         p   <- 1
         nl  <- n_ ^ l_
         b   <- (dist_ * rdist_ ^ l_) * .15
         ini <- 0:(npos / nl - 1) * nl + 1
         level <- vector('list', (n_ ^ dim_) ^ (lmax_ - l_))
 
-        for(j in ini) {
+        for (j in ini) {
           x <- c(pos[j], pos[j + nl - 1])
-          for(i in ini) {
+          for (i in ini) {
             y <- c(pos[i], pos[i + nl - 1])
             linea <- rbind(c(x[1] - b, y[1] - b),
                       c(x[1] - b, y[2] + b),
@@ -230,7 +230,7 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
   }
 
   patchAreas <- vector('list', nrow(coordsAll))
-  for(i in 1:nrow(coordsAll)) {
+  for (i in 1:nrow(coordsAll)) {
     patchAreas[[i]] <- ellipse(0, centre=c(coordsAll[i,1], coordsAll[i,2]), t=dist_ * .15, npoints=15)
   }
   areas[[1]] <- patchAreas
@@ -244,13 +244,13 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
   return(out)
 }
 
-###############################################
-###############################################
+########################
+########################
 
 mod <- function(x, y) { out <- x %% y; out[out == 0] <- y; return(out)}
 
-###############################################
-###############################################
+########################
+########################
 
 msd <- function(m_) {
   low   <- m_[upper.tri(m_)]
@@ -259,8 +259,8 @@ msd <- function(m_) {
   return(sd(total))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 mvar <- function(m_) {
   low   <- m_[upper.tri(m_)]
@@ -269,8 +269,8 @@ mvar <- function(m_) {
   return(var(total))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
@@ -282,7 +282,7 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
   coordsAll <- x$lands$coordsAll
   record    <- x$record
   tfinal    <- length(x$pop)
-  if(tfinal < x$parms$tfinal) {
+  if (tfinal < x$parms$tfinal) {
     tfinal <- tfinal - 1
   }
   dmin      <- ifelse(length(pos) > 1, min(diff(pos)), 1)
@@ -305,20 +305,20 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
   seriePasto <- sapply(pasto, sum)
   plotGrass  <- max(x$pop) * seriePasto / (x$parms$yield * nrow(x$lands$coordsAll))
 
-   if(outdir == 'default') out <- 'animation'
+   if (outdir == 'default') out <- 'animation'
   else {
     out <- outdir
     system(paste('mkdir', out))
   }
   
-  if(kind == 'animation' || kind == 1) {
+  if (kind == 'animation' || kind == 1) {
 
     require(animation)
     height <- 1.3 * 480
     width  <- 2 * (1.3) * 480
     oopt <- ani.options(interval=0.4, nmax=100, outdir=out, ani.height=height, ani.width=width)
 
-# ~    if(tfinal > 100) {
+# ~    if (tfinal > 100) {
 # ~      div <- round(tfinal / 100)
 # ~      times <- (1:tfinal)[(1:tfinal %% div) == 0]
 # ~    } else {
@@ -326,13 +326,13 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
 # ~    }
 
     ani.start()
-      for(i in times) {
+      for (i in times) {
         plot(1,1,type='n')
       }
     ani.stop()
 #~     ani.start()
     k <- 1
-    for(i in times) {
+    for (i in times) {
       png(filename=paste('animation/images/', k, '.png', sep=''),
         width=width, height=height, bg = "white",  res = 100)
       par(mfcol=c(1,2), mar=c(4,5.5,1.5,1.5))        
@@ -355,8 +355,8 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
 #~     ani.stop()
   }
 
-  if(kind == 'pop' || kind == 2) {
-    if(x$parms$grassMode != 'fixed') {
+  if (kind == 'pop' || kind == 2) {
+    if (x$parms$grassMode != 'fixed') {
       plot(plotGrass[times], type='o', pch=19, lwd=1.25, col='#409951',
       ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
       points(x$totalMigra[times], lwd=1.25, col='#B32323', type='o', pch=20)
@@ -367,7 +367,7 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
     points(x$pop[times], lwd=2, col=col1, type='o', pch=20)
   }
 
-  if(kind == 'foto' || kind == 3) {
+  if (kind == 'foto' || kind == 3) {
       par(mfcol=c(1,2), mar=c(4,5.5,1.5,1.5))        
       plot(parches, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims, cex.lab=1.7, cex.axis=1.7)
       rec <- record[[t_]]
@@ -385,8 +385,8 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
   }
 }
 
-###############################################
-###############################################
+########################
+########################
 
 plot.lands <- function(x, yield=1, pasto=rep(yield, nrow(x$coordsAll)), cex.grass=3, pch.grass=19, ...) {
   with(x, {
@@ -396,24 +396,24 @@ plot.lands <- function(x, yield=1, pasto=rep(yield, nrow(x$coordsAll)), cex.gras
     })
 }
 
-###############################################
-###############################################
+########################
+########################
 
 powerPts <- function(x, ptExp) {
   return((x - min(x) + 1) ^ ptExp)
 }
 
-###############################################
-###############################################
+########################
+########################
 
 print.ibm <- function(x, stats=TRUE) {
 
-  if(stats) {
+  if (stats) {
     print(x$indStats)
     print(x$lands)
   }
 
-  if(stats) cat(paste('\nYIELD = ', round(x$parms$yield, 2), '\n', sep=''))
+  if (stats) cat(paste('\nYIELD = ', round(x$parms$yield, 2), '\n', sep=''))
 
   tiempo   <- length(x$pop)
   halfTime <- round(tiempo / 2)
@@ -460,8 +460,8 @@ print.ibm <- function(x, stats=TRUE) {
     sep=''))
 }
 
-###############################################
-###############################################
+########################
+########################
 
 print.ibmStats <- function(x) {
 # x es un objeto de la clase ibmStats
@@ -478,8 +478,8 @@ print.ibmStats <- function(x) {
     })
 }
 
-###############################################
-###############################################
+########################
+########################
 
 print.lands <- function(x) {
 
@@ -492,13 +492,13 @@ print.lands <- function(x) {
   })
 }
 
-###############################################
-###############################################
+########################
+########################
 
 rectas <- function(tabla) {
 
   masTramos <- TRUE 
-  while(masTramos) {
+  while (masTramos) {
     cat('\nVER GRÁFICA:\n')
     plot(popAllK ~ logSize, data=tabla, type='o', log='y')
     mastramos <- readline('¿Agregar un tramo?')
@@ -516,8 +516,8 @@ rectas <- function(tabla) {
       lwd=4, col=2, cex=2, bty='n')
 }
 
-###############################################
-###############################################
+########################
+########################
 
 results <- function(experimento='unParcheSolo') {
 
@@ -526,7 +526,7 @@ results <- function(experimento='unParcheSolo') {
   load(paste(filesDir, 'tablas.RData', sep='/'))
   load(paste(filesDir, 'sizesValues.RData', sep='/'))
   
-  if(nValues == 1) {
+  if (nValues == 1) {
   
     tabla <- tablas[1]
   
@@ -544,7 +544,7 @@ results <- function(experimento='unParcheSolo') {
     
     nada <- readline('Agregar los tamaños poblacionales para individuos con\n\treservas > (1.5 * minres)?(s/N): ')
     
-    if(nada != "" && (nada == "s" || nada == "S")) {
+    if (nada != "" && (nada == "s" || nada == "S")) {
     
       points(popK ~ logSize, data=tabla, type='o', col=4)
     
@@ -557,10 +557,10 @@ results <- function(experimento='unParcheSolo') {
     
     nada <- readline('\nVer las dinámicas poblacionales?(s/N):\n\t(todas las simulaciones) ')
     
-    if(nada != "" && (nada == "s" || nada == "S")) {
-      for(s in 1:nSizes) {
+    if (nada != "" && (nada == "s" || nada == "S")) {
+      for (s in 1:nSizes) {
         cat(paste('\nSize nro.', s, 'de', nSizes, '\n'))
-        for(r in 1:nReps) {
+        for (r in 1:nReps) {
     
           nada <- readline(paste('Repetición nro.:', r, 'de', nReps))
           load(paste(filesDir, '/value_1_size_', s,
@@ -575,7 +575,7 @@ results <- function(experimento='unParcheSolo') {
     
     nada <- readline('\nVer escalamientos (regresiones) de las densidades poblacionales?\n(incluye individuos con pocas reservas)\n\t(S/n):\t\t')
     
-    if(nada == "" || nada == "s" || nada == "S") {
+    if (nada == "" || nada == "s" || nada == "S") {
     
       r <- lm(log10(popAllK) ~ logSize, data=tabla)
       plot(popAllK ~ logSize, data=tabla, type='o', log='y')
@@ -601,7 +601,7 @@ results <- function(experimento='unParcheSolo') {
             'Todos los individuos',
             'Sólo los que tienen reservas > 1.5 * minres'))
   
-    if(nada == 1) tabla <- sizesValues else tabla <- sizesValuesAll
+    if (nada == 1) tabla <- sizesValues else tabla <- sizesValuesAll
   
     colores <- heat.colors(nValues + 7)
     
@@ -630,20 +630,20 @@ results <- function(experimento='unParcheSolo') {
   }
 }
 
-###############################################
-###############################################
+########################
+########################
 
 sdaFun <- function(x, sdaMax=sdaMax, mei=mei[i]) {
   return(x * sdaMax / mei)
 }
 
-###############################################
-###############################################
+########################
+########################
 
 seeStats <- function(x) print(x$indStats)
 
-###############################################
-###############################################
+########################
+########################
 
 stats <- function() {
 
@@ -661,23 +661,23 @@ stats <- function() {
     TRS <- trs0 * M ^ trsExp
     REE <- TRS * E_cr
     PSI <- REE + npsi * MEI * m_c / E_cr - TMC
-    if(ptsMode == 'PEB') PSI <- PSI - REE
+    if (ptsMode == 'PEB') PSI <- PSI - REE
   
     out <- list(MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0,
           MEI=MEI, MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)
   
     class(out) <- 'ibmStats'
 # ~  
-# ~    if(printOut) print(out)
+# ~    if (printOut) print(out)
   
     return(out)
   })
 }
 
-###############################################
-###############################################
+########################
+########################
 
-## TASA DE CRECIMIENTO PER CÁPITA
+# TASA DE CRECIMIENTO PER CÁPITA
 tasa <- function(x) {
 # x es un objeto 'ibm'
   tfinal <- length(x$pop)
@@ -702,9 +702,9 @@ tasa <- function(x) {
 
 ibmplot <- function(x, landsTitle='A Simple Plot', popTitle='Dinámica Poblacional',
             xlab='Iteración (t)', ylab='Abundancia (N[t])', ini=1, fin=2) {
-  ## Ejemplo:
-  ## x <- ibm(tfinal=100)
-  ## for(i in 1:100) { grid.newpage(); ibmplot(x, fin=i) }
+  # Ejemplo:
+  # x <- ibm(tfinal=100)
+  # for (i in 1:100) { grid.newpage(); ibmplot(x, fin=i) }
   coordsAll <- x$lands$coordsAll
   x_ <- coordsAll$x
   y_ <- coordsAll$y
