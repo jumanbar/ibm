@@ -92,6 +92,15 @@ ibm <- function(
                      rdist_=landsRdist_,
                      type=landsType)
   }
+  landsLmax_ <- lands$parms$lmax_
+  if (levelFocus >= landsLmax_)
+  levelFocus <- landsLmax_ - 1
+  #-->Si no se hace esta corrección va a dar error
+  if (levelFocus >= landsLmax_)
+    levelFocus <- landsLmax_ - 1
+  if (levelSeeds >= landsLmax_)
+    levelSeeds <- landsLmax_ - 1
+    
   xypasto <- as.matrix(lands$coordsAll)
 
   # 0.1 Objetos fijos
@@ -157,84 +166,85 @@ ibm <- function(
 
     for (i in index) {
       # 1. MOVIMIENTO Y ALIMENTACIÓN
-      goRand <- FALSE
-      stay   <- FALSE
-      condA  <- sum(pasto) > tol
-      condB  <- TRUE
-      cfa    <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
+      goRand  <- FALSE
+      donoth  <- FALSE
+#       condA   <- sum(pasto) > tol
+#       condB   <- TRUE
+      xy <- xypos[i,]
+      cfa      <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
+      cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
+      visibles <- inpip(xypasto, cfa_i, bound=TRUE)
+      # Para que arranque el while
 
-      while (condA && condB) {
-        xy <- xypos[i,]
+      while (sum(pasto[visibles]) > tol &&
+             restoMov[i]          > tol &&
+             mei[i] - foodAcum[i] > tol &&
+             !donoth) {
         if (is.na(optPatch[i])) {
+          # Si debe elegir un parche nuevo hacia el cual moverse...
+
           # 1.1 Elección del próximo parche
-          cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
-          visibles <- inpip(xypasto, cfa_i, bound=TRUE)
-  
-          if (length(visibles) >= 1) {
-            # 1.1.1 Si hay más de 1 parche visible
-            # Distancia y cantidad de recursos:
-            dist2visib <- distancias(xy, xypasto[visibles,])
-            ratioDist  <- dist2visib / mmd[i]
-            ratioRsrc  <- pasto[visibles] / mei[i]
-            #-->(Rsrc = resource)
-            flrsrc <- floor(ratioRsrc)
-  
-            # Costos:
-            costPerDist <- ratioDist * mmc[i] * m_c / E_cr
-            costPerMant <- pmax(ratioDist, ratioRsrc) * tmc[i]
-  
-            # Ganancias:
-            plus <- ratioRsrc * mei[i] * m_c / E_cr
-  
-            # Balance de Biomasa:
-            PBB <- c(plus - (costPerDist + costPerMant),
-                     - restoMov[i] * icl[i],
-                      # Balance corresp. a mov. aleatorio.
-                     - tmc[i] * max(restoMov[i] / mmd[i],
-                     1 - foodAcum[i] / mei[i]))
-                      # Balance corresp. a quedarse en el lugar.
-  
-            # Incluír el costo extra por usar reservas (si PBB < 0):
-            PBB[PBB < 0] <- PBB[PBB < 0] / (1 - ruc)
-  
-            # Asignación de puntajes & elección de parche:
-            input <- PBB
-            if (ptsMode != 'PBB')
-              input <- input + trs[i]
-            puntaje <- pointsFun()
-            puntaje[puntaje <= 0] <- tol
-            choiceNum <- chFun(puntaje, critQuant=chFun.quant)
-  
-            if (PBB[choiceNum] == 0) {
-              break
-            }
-          } else {
-            # 1.1.2 Si hay 1 sólo parche visible
-            PBB <- c(- restoMov[i] * icl[i],
-                     - tmc[i])
-            input <- PBB
-            if (ptsMode != 'PBB')
-              input <- input + trs[i]
-            puntaje <- pointsFun()
-            puntaje[puntaje <= 0] <- tol
-            choiceNum <- sample(1:2, 1, prob=puntaje)
-          }
+          # Distancia y cantidad de recursos:
+          dist2visib <- distancias(xy, xypasto[visibles,])
+          ratioDist  <- dist2visib / mmd[i]
+          ratioRsrc  <- pasto[visibles] / mei[i]
+          #-->(Rsrc = resource)
+          flrsrc <- floor(ratioRsrc)
+
+          # Costos:
+          costPerDist <- ratioDist * mmc[i] * m_c / E_cr
+          costPerMant <- pmax(ratioDist, ratioRsrc) * tmc[i]
+
+          # Ganancias:
+          plus <- ratioRsrc * mei[i] * m_c / E_cr
+
+          # Balance de Biomasa:
+          PBB <- c(plus - (costPerDist + costPerMant),
+                   # Ballance x ir a cada parche a comer
+                   - (tmc[i] + icl[i]) * restoMov[i] / mmd[i],
+                   # Balance x mov. aleatorio.
+                   - tmc[i] * max(restoMov[i] / mmd[i],
+                   1 - foodAcum[i] / mei[i]))
+                   # Balance x quedarse en el lugar.
+
+          # Incluír el costo extra por usar reservas (si PBB < 0):
+          PBB[PBB < 0] <- PBB[PBB < 0] / (1 - ruc)
+
+          # Asignación de puntajes & elección de parche:
+          input <- PBB
+          if (ptsMode != 'PBB')
+            # La alternativa a PBB es tener en cuenta las reservas de cada
+            # individuo a la hora de asignar puntajes.
+            input <- input + trs[i]
+          puntaje <- pointsFun()
+          puntaje[puntaje <= 0] <- tol
+          choiceNum <- chFun(puntaje, critQuant=chFun.quant)
+          optPatch[i] <- visibles[choiceNum]
+          dist2patch  <- dist2visib[choiceNum]
+
+###############
+#           if (PBB[choiceNum] == 0) {
+#             break
+#           }
+# No me acuerdo para qué está este if...
+###############
 
           # 1.1.2.1 Elegir quedarse o salir en una dirección al azar
           if (choiceNum == length(visibles) + 1)
             goRand <- TRUE
           if (choiceNum == length(visibles) + 2)
-            stay   <- TRUE
-          if (!any(goRand, stay)) {
-            optPatch[i] <- visibles[choiceNum]
-            dist2patch  <- dist2visib[choiceNum]
-            # Si veía un sólo parche y estaba sobre él, no más turno:
-            if (length(visibles) == 1 && dist2patch < tol) {
-              optPatch[i] <- NA
-              break
-            }
-          }
+            donoth   <- TRUE
+#           if (!(goRand || donoth)) {
+#             optPatch[i] <- visibles[choiceNum]
+#             dist2patch  <- dist2visib[choiceNum]
+#             # Si veía un sólo parche y estaba sobre él, no más turno:
+#             if (length(visibles) == 1 && dist2patch < tol) {
+#               optPatch[i] <- NA
+#               break
+#             }
+#           }
         } else {
+          # Si continua moviéndose desde el turno anterior...
           dist2patch <- distancias(xy, xypasto[optPatch[i],])
         }
 
@@ -243,11 +253,8 @@ ibm <- function(
           xyRand      <- cfaRand[sample(60, 1), ]
           xypos[i,]   <- xy + restoMov[i] * xyRand
           restoMov[i] <- 0
-          condB       <- FALSE
         }
-        if (stay)
-          condB <- FALSE
-        if (!any(goRand, stay)) {
+        if (!(goRand || donoth)) {
           # 1.2.2 Movimiento hacia el parche
           # Si llega al parche
           if (restoMov[i] - dist2patch > tol) {
@@ -274,10 +281,8 @@ ibm <- function(
             restoMov[i]   <- 0
           }
         }
-        condA <-
-        restoMov[i] > tol &&
-        (mei[i] - foodAcum[i]) > tol &&
-        sum(pasto) > tol
+        cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
+        visibles <- inpip(xypasto, cfa_i, bound=TRUE)
       }
       obtEner[i] <- foodAcum[i]
     }
@@ -414,9 +419,12 @@ ibm <- function(
     llama['tfinal'] <- tfinal
   }
   cl <- as.list(llama)
+#   browser()
   if (length(cl) > 1) {
     for (k in 2:length(cl))
-      parms[names(cl)[k]] <- eval(cl[[k]])
+      pnumb <- which(names(parms) == names(cl)[k])
+      parms[[pnumb]] <- eval(cl[[k]])
+#       parms[names(cl)[k]] <- eval(cl[[k]])
   }
   totalMigra <- sapply(migra, sum)
   ijMigra <- totalMigra / (npatch * (npatch - 1))

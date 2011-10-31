@@ -222,7 +222,8 @@ NMB
 MEI
 # Maximum Energy Intake (per day)
 PBB
-# Partial Biomass Balance
+# Partial Biomass Balance: no toma en cuenta el estado de reservas actuales del
+# individuo.
 PSI
 # Algo así como el máximo balance posible...
 # psi <- npsi * mei * m_c / E_cr - tmc

@@ -212,9 +212,6 @@ importer <- function(im, tfinal) {
 # 0.2 Individuos iniciales
 indivSeed <- function() {
   with(parent.frame(), {
-    if (levelFocus >= landsLmax_)
-      levelFocus <- landsLmax_ - 1
-    #-->Si no se hace esta corrección va a dar error
     if (levelSeeds < 0) {
     # Repartija aleatoria de individuos en los parches nivel 0
       N       <- N_0
