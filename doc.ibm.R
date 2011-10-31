@@ -1,5 +1,69 @@
-# v1.4
-epm=???, # Energy per mass (energía por unidad de masa) = E_c / m_c
+# v1.4 - incompleto
+addGuys=FALSE,
+# agrega pibes además de los que pone por parche
+chFun=chooseFromAll # chooseMax | chooseFromAll | chooseQuant
+chFun.quant=.85 # El cuantil que se usa en caso de que chFun=chooseQuant
+mmd0=3 * 1.04
+# DMD = Daily Movement Distance (Garland 1983)
+# = 1.038 * M ^ 0.25 Km/day <- supongo que es un promedio
+mmdExp=1/4
+E_c=2.1e-8 # KJ
+E_cr=21e-8 # KJ
+m_c=3e-12  # Kg
+gompB=-5.5
+gompC=-1.5
+grassMode='fixed'
+# fixed | semiFixed | bholt | randSprout (?)
+grassProb=0.5
+icl0=10.68 # KJ/km
+iclExp=0.75 # 0.70
+import=NULL
+lands=NULL
+# Argumentos de landscape: sólo tienen efecto si
+# lands = NULL:
+# (inicio)
+landsDim_=2
+landsDist_=1
+landsLmax_=2
+landsN_=3
+landsRdist_=3
+landsType='fractal' # fractal | regular | randUnif
+# (fin)
+levelSeeds=1
+# integer -1 (random) | 0 | 1 | 2 ... (landsLmax_ - 1)
+levelFocus=1 # integer 0 | 1 | 2 ... (landsLmax_ - 1)
+logitA0=-2.5 # numeric
+logitA1=.06 # numeric
+M=0.1 # numeric ..
+mei0=8  # numeric ..
+mpd0=18 # numeric ..
+mpdExp=1/2 # numeric
+N_0=9 # integer No. de individuos iniciales | 'K'
+npsi=2 # numeric
+p.max=10 # numeric
+p.0=0.01 # probability
+p.1=0.9 # probability
+pastoRo=2 # numeric growth rate
+pm=0.05 # numeric body mass fraction
+plotPop=TRUE # logical plot population dynamics?
+ptExp=3
+ptsFun='pfGompAuto1'
+# pfLogitAuto | pfLogitManual | pfGompAuto1 | pfGompAuto2 |
+# pfGompManual | pfPotencia
+ptsMode='PBB' # PBB | cualquier cosa
+randomTurn=TRUE
+bmr0=293 # KJ/day ver detalles en doc.ibm.R
+bmrExp=(3/4)
+ruc=0.1 # Costo asociado a usar las reservas
+showTime=TRUE
+showStats=TRUE
+showSummary=TRUE
+tfinal=100
+trs0=0.3
+trsExp=1
+verboso=TRUE
+yield=100
+
 gompAuto=TRUE
 gompB=-5.5
 gompC=-1.5
@@ -70,7 +134,7 @@ landsType='fractal'
 # Las opciones son: 'fractal', 'regular', 'randUnif'
 #* Los efectos de varios argumentos, como landsN_ difieren según el landsType
 #* Sólo tiene efecto si lands = NULL
-logitAuto=TRUE
+pfLogitAuto=TRUE
 # Determina si se calculan los valores de los parámetros logitA0 y logitA1,
 # de tal forma que cumplan tal dos condiciones:
 # 		1.  Puntaje de parche con balance demasiado negativo* = logitP0 (= 0.05 del total x defecto)
@@ -82,18 +146,18 @@ logitA0=-.06
 # Argumentos pasados a logit (a0 y a1). Determina la forma de la curva de desición
 # de los individuos. Cuanto menor a0 y mayor a1, más conservadores son los individuos
 # (es decir, se arriesgan menos en ir a parche distantes con mucho alimento).
-#* Sólo tienen efecto si logitAuto = FALSE
+#* Sólo tienen efecto si pfLogitAuto = FALSE
 logitP0=0.01
 logitP1=0.90
-# Ver 'logitAuto'
+# Ver 'pfLogitAuto'
 pastoRo=4
 # La tasa de crecimiento máxima de crecimiento de las poblaciones de 'pasto' (recurso).
 # Es llamado por la función bholt
 plotPop=TRUE
 # Determina si se hace una gráfica de la dinámica poblacional al final de la
 # simulación
-p_max=10
-random=TRUE
+p.max=10
+randomTurn=TRUE
 # Determina si al comienzo de cada iteración en la simulación el orden en que
 # actúan los individuos debe ser o no aleatorio
 reser0=0.5
@@ -133,6 +197,62 @@ arg
 ...
 # Argumentos que se pasan a la función plot, en caso que se pida graficar la dinámica
 # poblacional (es decir, plotPop debe ser TRUE para que tenga algún efecto).
+
+# SIGLAS
+B_c
+# Single cell (basal?) metabolic rate
+BMR
+# Basal Metabolic Rate
+E_c
+# Energy required to creat a single cell (not reserve tissue)
+E_cr
+# Energy required to creat a single reserve tissue cell
+ICL
+# Incremental Cost of Locomotion
+m_c
+# A single cell mass
+MMD
+# Maximum Movement Distance (per day)
+MMC
+# Maximum Movement Cost (MMD * ICL)
+MPD
+# Maximum Perceived Distance
+NMB
+# No Movement Balance
+MEI
+# Maximum Energy Intake (per day)
+PBB
+# Partial Biomass Balance
+PSI
+# Algo así como el máximo balance posible...
+# psi <- npsi * mei * m_c / E_cr - tmc
+# npsi es un valor entrado por el usuario: por cuántos turnos de máximo valor
+# de balance quiero establecer el psi...
+RCB
+# Random Choice Balance
+REE
+# 
+RUC
+# Reserves Use Cost
+TMC
+# Total Maintenance Cost
+TRS
+# Total Reserves Size
+
+# ECUACIONES
+# Transformación de energía de recursos en biomasa/reservas:
+biomasa  = (E.Recursos / E_c )  * m_c
+reservas = (E.Recursos / E_cr ) * m_c
+
+# Transformación de reservas en energía:
+Er = (reservas / m_c) * E_cr
+
+# Pérdida de biomasa por el uso de reservas como fuente de E:
+perdida = Er / (1 - ruc)
+
+# Balance de obtención/pérdida de energía y biomasa resultante
+deltaBiom = (obtEner  - icl * (mmd - restoMov)) * m_c / E_cr - tmc
+
 
 # SALIDA:
 babyBiom=babyBiom,
