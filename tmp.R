@@ -1,4 +1,5 @@
 directorio <- file.path('..', 'muestras-2011-10')
+unlink(directorio, TRUE)
 dir.create(directorio)
 dir.create(file.path(directorio, 'corridas'))
 
@@ -20,7 +21,7 @@ for (i in 1:nM) {
     count <- 0
     while (count < 20) {
       count <- count + 1
-      run <- ibm(lands=isla, yield=vectorY[j], tfinal=tf[i],
+      run <- ibm(lands=isla, yield=vectorY[j] ** 2, tfinal=tf[i],
                  M=10 ^ vectorM[i], verboso=FALSE)
       if (!run$extinction)
         break
@@ -29,7 +30,7 @@ for (i in 1:nM) {
     if (run$extinction) {
       muestra[j, 3] <- 0
     } else {
-      muestra[j, ] <- c(x$parms$M, x$parms$yield, mean(x$pop[mintf[i]:last]))
+      muestra[j, ] <- c(run$parms$M, run$parms$yield, mean(run$pop[mintf[i]:last]))
     }
     nombrerun <- paste('run-M-', i, '-yield-', j, 'RData', sep='')
     save(run, file=file.path(directorio, 'corridas', nombrerun))
