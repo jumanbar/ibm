@@ -9,7 +9,7 @@ nM <- 8
 nY <- 8
 vectorM <- seq(-1, 1, len=nM)
 vectorY <- seq(5000 ^ (1 / 2), 30000 ^ (1 / 2), len=nY)
-tf <- 800 + (10 ^ vectorM) * 565.6566
+tf <- round(800 + (10 ^ vectorM) * 565.6566)
 mintf <- round(tf / 8)
 listaM  <- vector("list", nM)
 
@@ -21,14 +21,15 @@ for (i in 1:nM) {
     count <- 0
     while (count < 20) {
       count <- count + 1
-      run <- ibm(lands=isla, yield=vectorY[j] ** 2, tfinal=tf[i],
+      y <- vectorY[j] ^ 2
+      run <- ibm(lands=isla, yield=y, tfinal=tf[i],
                  M=10 ^ vectorM[i], verboso=FALSE)
       if (!run$extinction)
         break
     }
     last <- length(run$pop)
     if (run$extinction) {
-      muestra[j, 3] <- 0
+      muestra[j, ] <- c(run$parms$M, run$parms$yield, 0)
     } else {
       muestra[j, ] <- c(run$parms$M, run$parms$yield, mean(run$pop[mintf[i]:last]))
     }
