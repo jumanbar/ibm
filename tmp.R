@@ -22,8 +22,9 @@ for (i in 1:nM) {
     while (count < 20) {
       count <- count + 1
       y <- vectorY[j] ^ 2
+      m <- 10 ^ vectorM[i]
       run <- ibm(lands=isla, yield=y, tfinal=tf[i],
-                 M=10 ^ vectorM[i], verboso=FALSE)
+                 M=m, verboso=FALSE)
       if (!run$extinction)
         break
     }
