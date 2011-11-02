@@ -212,7 +212,7 @@ importer <- function(im, tfinal) {
 # 0.2 Individuos iniciales
 indivSeed <- function() {
   with(parent.frame(), {
-    if (levelSeeds < 0) {
+    if (levelSeeds < 0 || tolower(levelSeeds) == 'random') {
     # Repartija aleatoria de individuos en los parches nivel 0
       N       <- N_0
       nombres <- 1:N
@@ -223,11 +223,11 @@ indivSeed <- function() {
         xypos <- matrix(xypos, ncol=2)
       }
     } else {
-    # 
+    # Repartijas con criterios más selectivos
       npatch  <- length(lands$areas[[levelSeeds + 1]])
       N       <- npatch
       nombres <- 1:N
-      if (levelSeeds == 0) {
+      if (levelSeeds %in% c(0, 'all')) {
       # Un individuo por parche de nivel 0
         pos <- 1:N
       } else {
@@ -610,40 +610,38 @@ print.ibm <- function(x, stats=TRUE) {
   halfTime <- round(tiempo / 2)
   pop1     <- mean(x$pop[1:(halfTime - 1)])
   mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
-# ~  popAll1  <- mean(x$popAll[1:(halfTime - 1)])
   pop2     <- mean(x$pop[halfTime:tiempo])
   mig2     <- mean(x$totalMigra[halfTime:tiempo])
-# ~  popAll2  <- mean(x$popAll[halfTime:tiempo])
 
+  lands <- x$lands
+  totalPatches0 <- with(lands, length(pos) ^ parms$dim_)
+  xypos <- x$record[[tiempo]][, c('x', 'y')]
+  count <- 0
+  for (i in 1:totalPatches0) {
+    vec <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
+    count <- count + (length(vec) > 0)
+  }
+  patch0    <- count / totalPatches0
   nPatches  <- length(x$vecinos[[tiempo]])
   nVecinos  <- sapply(x$vecinos[[tiempo]], length)
   nOccupied <- sum(sum(nVecinos > 0))
   cat(paste(
     '\nTiempo total de simulación:\t', tiempo, ' iteraciones\n',
     '\nPoblación promedio, 1er. mitad:\t', round(pop1,2),
-# ~    '\nPoblación promedio, 1er. mitad:\t', round(pop1,2), '\t/  ', round(popAll1,2),
-    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n',
-# ~    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\t/  ', round(popAll2,2),'\n',
-
+    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n\n',
     '\nMigrantes promedio, 1er. mitad:\t', round(mig1,3),
-    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n',
-
+    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n\n',
+    '\nCantidad de parches 0 ocupados (%):\t', paste(count, totalPatches0, sep='/'),
+      ' (', round(100 * patch0, 2), '%)',
     '\nCantidad de parches ocupados (%):\t', paste(nOccupied, nPatches, sep='/'),
       ' (', round(100 * nOccupied / nPatches, 2), '%)',
-#      '\nAbundancias en parches:\n\t', nVecinos, '\n',
     sep=''))
-
-
-  
-# ~  nOccupied <- length(unique(x$record[[tiempo]][,c('x','y')]))
-# ~  percOccup <- 100 * nOccupied / nPatches
 
   grass    <- x$pastoAll[[tiempo]]
   yield    <- x$parms$yield
   perYield <- 100 * (1 - mean(grass) / yield )
   
   cat(paste(
-# ~    '\nPorcentaje de parches ocupados:\t', round(percOccup, 1), '%',
     '\nRecursos promedio por parche (nivel 0):\t', round(mean(grass), 1),
     '\nProm. de recursos consumidos:\t\t', round(perYield, 1), '%\n',
     '\nTIEMPO TOTAL DE SIMULACIÓN:\t', round(x$tiempo, 1),

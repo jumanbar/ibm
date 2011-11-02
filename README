@@ -1,5 +1,5 @@
 Este repositorio contiene los scripts necesarios para ejecutar el Modelo Basado en Individuos (IBM, por las siglas en inglés) que he creado para mi maestría en ecología.
 
-La función principal es ibm, contenida en el archivo ibm.R. Para funcionar se necesita este archivo + aux.ibm.R (el cual contiene funciones auxiliares) y los paquetes "splancs" y "ellipse".
+La función principal es ibm, contenida en el archivo ibm.R. Para funcionar se necesita este archivo + aux.ibm.R (el cual contiene funciones auxiliares) y los paquetes "splancs" y "ellipse". El paquete "animation" también es recomendado, aunque no estrictamente necesario.
 
 El archivo doc.ibm.R es un intento de documentar el uso de todos los parámetros y los significados de ciertas siglas que se usan reiteradamente.
