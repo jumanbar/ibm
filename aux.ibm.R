@@ -149,15 +149,16 @@ grassGrow <- function() {
 importer <- function(im, tfinal) {
 # im= ibm importado
   out <- NULL
-  out$tfinal <- tfinal
+  pr  <- im$parms[!(names(im$parms) %in% c('import', 'lands', 'tfinal'))]
+  out <- c(pr, im[!(names(im) %in% c('call', 'extinction'))])
+  out$tfinal  <- tfinal
   out$extra_t <- im$tiempo
-  pr  <- im$parms[names(im$parms) != 'import']
-  out <- c(pr, im[!(names(im) %in% c('call', 'extinction'))]) 
-  out <- within(pr, {
-    t_ <- length(im$pop)
-    tfinal  <- tfinal + t_
-    lands   <- im$lands
-    N       <- im$pop[t_]
+  out <- within(out, {
+    t_      <- length(pop)
+    tplus   <- tfinal
+    tfinal  <- tplus + t_
+    lands   <- lands
+    N       <- pop[t_]
     m0      <- pm * M
     trsMax  <- trs0 * M ^ trsExp
     trsMin  <- trs0 * m0 ^ trsExp
@@ -165,43 +166,33 @@ importer <- function(im, tfinal) {
     B_c     <- 2 * m_c * bmr0 / M ^ (1 / 4)
     cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
   
-    babyBiom  <- im$babyBiom
-    optPatch  <- im$optPatch
-    foodAcum  <- im$record[[t_]]$foodAcum
-    nombres   <- im$record[[t_]]$name
-    reser     <- im$record[[t_]]$reser
+    babyBiom  <- babyBiom
+    optPatch  <- optPatch
+    foodAcum  <- record[[t_]]$foodAcum
+    nombres   <- record[[t_]]$name
+    reser     <- record[[t_]]$reser
     lastname  <- nombres[N]
-    m         <- im$record[[t_]]$m; pop[1] <- N
+    m         <- record[[t_]]$m; pop[1] <- N
     xypos     <- as.matrix(im$record[[t_]][, c('x','y')])
-    indStats  <- im$indStats
-    pointsFun <- im$pointsFun
-  
-    pastoAll <- vector('list', tfinal)
-    pastoAll[1:t_] <- im$pastoAll
+    indStats  <- indStats
+    pointsFun <- pointsFun
+
+    browser()
+    
+    pastoAll <- c(pastoAll, vector('list', tplus))
     pasto <- pastoAll[[t_]]
-    pop <- numeric(tfinal)
-    pop[1:t_] <- im$pop
-    births <- numeric(tfinal)
-    births[1:t_] <- im$births
-    deaths <- numeric(tfinal)
-    deaths[1:t_] <- im$deaths
-    ijMigra <- numeric(tfinal)
-    ijMigra[1:t_] <- im$ijMigra
-    popMigra <- numeric(tfinal)
-    popMigra[1:t_] <- im$popMigra
-    totalMigra <- numeric(tfinal)
-    totalMigra[1:t_] <- im$totalMigra
-    totalEmigra <- numeric(tfinal)
-    totalEmigra[1:t_] <- im$totalEmigra
-    totalInmigra <- numeric(tfinal)
-    totalInmigra[1:t_] <- im$totalInmigra
-    record <- vector('list', tfinal)
-    record[1:t_] <- im$record
-    migra <- vector('list', tfinal)
-    migra[1:t_] <- im$migra
+    pop <- c(pop, numeric(tplus))
+    births <- c(births, numeric(tplus))
+    deaths <- c(deaths, numeric(tplus))
+    ijMigra <- c(ijMigra, numeric(tplus))
+    popMigra <- c(popMigra, numeric(tplus))
+    totalMigra <- c(totalMigra, numeric(tplus))
+    totalEmigra <- c(totalEmigra, numeric(tplus))
+    totalInmigra <- c(totalInmigra, numeric(tplus))
+    record <- c(record, vector('list', tplus))
+    migra <- c(migra, vector('list', tplus))
     migra_t <- migra[[t_]]
-    vecinos <- vector('list', tfinal)
-    vecinos[1:t_] <- im$vecinos
+    vecinos <- c(vecinos, vector('list', tplus))
     vecinos_t <- vecinos[[t_]]
     t_ <- t_ + 1
   })
@@ -257,15 +248,17 @@ indivSeed <- function() {
   
     lastname <- N
     foodAcum <- numeric(N)
-    m        <- rep.int(M, N)
-  #    m        <- rep.int(m0, N)
-  #    m        <- runif (N, m0, M)
+    m <- switch(sizeMode,
+                  adults = rep.int(M, N),
+                  infants = rep.int(m0, N),
+                  random = runif(N, m0, M),
+                  ratio = sample(c(m0, M), N, replace=TRUE,
+                                 prob=c(1, sizeRatio)))
     reser    <- trs0 * m ^ trsExp
     babyBiom <- numeric(N)
     optPatch <- numeric(N) * NA
   })
 }
-
 ############
 ############
 logistica <- function(x, logitA0, logitA1) {
@@ -413,7 +406,7 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
 
   patchAreas <- vector('list', nrow(coordsAll))
   for (i in 1:nrow(coordsAll)) {
-    patchAreas[[i]] <- ellipse(0, centre=c(coordsAll[i,1], coordsAll[i,2]), t=dist_ * .15, npoints=15)
+    patchAreas[[i]] <- ellipse(0, centre=c(coordsAll[i,1], coordsAll[i,2]), t=dist_ * .5, npoints=15)
   }
   areas[[1]] <- patchAreas
   

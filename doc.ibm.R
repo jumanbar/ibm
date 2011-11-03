@@ -175,6 +175,13 @@ showStats=TRUE
 showSummary=TRUE
 # Determina si se deben mostrar las estadísticas poblacionales al final de la
 # simulación.
+sizeMode='adults'
+# Determina la forma en que se determinan los tamaños corporales de los
+# individuos iniciales. Opciones:
+# adults | infants | random | ratio
+sizeRatio=0.4
+# En caso de que sizeMode == 'ratio', sizeRatio determina la relación entre
+# adultos y recien nacidos (sizeRatio = adultos / recién nacidos)
 M=0.1
 # Es el tamaño de los individuos, el cual determina varios parámetros importantes
 # En Kg

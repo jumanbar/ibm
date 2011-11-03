@@ -1,6 +1,6 @@
 
 ibm <- function(
-      addGuys=FALSE,
+      addGuys=TRUE,
       # agrega pibes además de los que pone por parche
       chFun=chooseFromAll, # chooseMax | chooseFromAll | chooseQuant
       chFun.quant=.85,
@@ -59,6 +59,9 @@ ibm <- function(
       showTime=TRUE,
       showStats=TRUE,
       showSummary=TRUE,
+      sizeMode='adults',
+      # adults | infants | random | ratio
+      sizeRatio=0.4,
       tfinal=100,
       trs0=0.3,
       trsExp=1,
