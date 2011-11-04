@@ -59,7 +59,7 @@ ibm <- function(
       showTime=TRUE,
       showStats=TRUE,
       showSummary=TRUE,
-      sizeMode='adults',
+      sizeMode='ratio',
       # adults | infants | random | ratio
       sizeRatio=0.4,
       tfinal=100,

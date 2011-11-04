@@ -97,6 +97,19 @@ fixedObjects <- function() {
 }
 ############
 ############
+getStats <- function(x, show=TRUE) {
+  parms <- formals(ibm)
+  parms <- lapply(parms, eval)
+  parms[names(x)] <- x[names(x)]
+  parms <- within(parms,
+    B_c <- 2 * m_c * bmr0 / M ^ (1 / 4))
+  iStats <- with(parms, stats())
+  if (show)
+    print(iStats)
+  invisible(iStats)
+}
+############
+############
 gompertz <- function(x, p.max, gompB, gompC) {
 # ej: curve(gompertz(x, 1, -5.5, -1.5), from=-1, to=8, ylim=c(0,1)); ejes()
 # En modo Auto:
@@ -177,8 +190,6 @@ importer <- function(im, tfinal) {
     indStats  <- indStats
     pointsFun <- pointsFun
 
-    browser()
-    
     pastoAll <- c(pastoAll, vector('list', tplus))
     pasto <- pastoAll[[t_]]
     pop <- c(pop, numeric(tplus))
@@ -863,7 +874,7 @@ seeTime <- function(t_, pop)
 ############
 stats <- function() {
   require(ellipse, quietly=TRUE)
-  with(parent.frame(), {
+  out <- with(parent.frame(), {
     MMD <- mmd0 * M ^ mmdExp
     ICL <- icl0 * M ^ iclExp
     MMC <- MMD * ICL
@@ -878,12 +889,11 @@ stats <- function() {
     if (ptsMode == 'PBB')
       PSI <- PSI - REE
   
-    out <- list(MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
-                MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)
-  
-    class(out) <- 'ibmStats'
-    return(out)
+    list(MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
+         MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)
   })
+  class(out) <- 'ibmStats'
+  return(out)
 }
 ############
 ############
