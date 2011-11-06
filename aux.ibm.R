@@ -98,12 +98,29 @@ fixedObjects <- function() {
 ############
 ############
 getStats <- function(x, show=TRUE) {
-  parms <- formals(ibm)
-  parms <- lapply(parms, eval)
-  parms[names(x)] <- x[names(x)]
-  parms <- within(parms,
-    B_c <- 2 * m_c * bmr0 / M ^ (1 / 4))
-  iStats <- with(parms, stats())
+# x:
+#  1. Objeto ibm
+#  2. Objeto ibmStats
+#  3. Vector con nombres, indicando los valores de los distintos parámetros,
+#     por ejemplo 'x=c(M=12)'
+# salida:
+#  Debuelve las estadísticas de los individuos para los parámetros incluidos
+#  en x; los parámetros no especificados son tomados de los valores por
+#  defectos de los argumentos de la función ibm.
+  if ('ibm' %in% class(x))
+    iStats <- x$indStats
+  if ('ibmStats' %in% class(x))
+    iStats <- x
+  if (is.vector(x)) {
+    parms <- formals(ibm)
+    parms <- lapply(parms, eval)
+    if (!(names(x) %in% names(parms)))
+      stop('Los nombres del vector x deben coincidir con los argumentos de ibm')
+    parms[names(x)] <- x[names(x)]
+    parms <- within(parms,
+      B_c <- 2 * m_c * bmr0 / M ^ (1 / 4))
+    iStats <- with(parms, stats())
+  }
   if (show)
     print(iStats)
   invisible(iStats)
@@ -476,7 +493,7 @@ mvar <- function(m_) {
 ############
 plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
-            resFactor=2, noiseFactor=1/7, from, to, ...) {
+            resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2), ...) {
 
   M         <- x$parms$M
   parches   <- x$lands
@@ -537,7 +554,7 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
     for (i in times) {
       png(filename=paste('animation/images/', k, '.png', sep=''),
         width=width, height=height, bg = "white",  res = 100)
-      par(mfcol=c(1,2), mar=c(4,5.5,1.5,1.5))        
+      par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))        
       plot(parches, yield=yield, pasto=pasto[[i]], ylim=y.lims, xlim=x.lims, cex.lab=1.7, cex.axis=1.7)
       rec <- record[[i]]
       noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
@@ -570,7 +587,7 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
   }
 
   if (kind == 'foto' || kind == 3) {
-      par(mfcol=c(1,2), mar=c(4,5.5,1.5,1.5))        
+      par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
       plot(parches, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims, cex.lab=1.7, cex.axis=1.7)
       rec <- record[[t_]]
       noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
@@ -660,7 +677,7 @@ print.ibmStats <- function(x) {
     cat(paste('\nAtributos individuales:\n\tMMD = ', round(MMD, 3),
       ' Km/day\tICL = ', round(ICL, 4), ' KJ/Km\tMMC = ', round(MMC, 4),
       ' KJ/day\n\tBMR = ', round(BMR,3), ' KJ/day\tMEI = ', round(MEI, 3),
-      ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0 = ', round(M0, 2),
+      ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
       ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day',
       ' Kg\n\tREE = ', round(REE, 3), ' KJ',

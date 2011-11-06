@@ -30,7 +30,7 @@ ibm <- function(
       landsRdist_=3,
       landsType='fractal', # fractal | regular | randUnif
       # (fin)
-      levelSeeds=1,
+      levelSeeds=0,
       # integer -1 (random) | 0 | 1 | 2 ... (landsLmax_ - 1)
       levelFocus=1, # integer 0 | 1 | 2 ... (landsLmax_ - 1)
       logitA0=-2.5, # numeric
