@@ -1,44 +1,32 @@
-directorio <- file.path('..', 'muestras-2011-10')
-unlink(directorio, TRUE)
-dir.create(directorio)
-dir.create(file.path(directorio, 'corridas'))
-
-isla <- mklands(lmax_=1, n_=1)
-
-nM <- 8
-nY <- 8
-vectorM <- seq(-1, 1, len=nM)
-vectorY <- seq(5000 ^ (1 / 2), 30000 ^ (1 / 2), len=nY)
-tf <- round(800 + (10 ^ vectorM) * 565.6566)
-mintf <- round(tf / 8)
-listaM  <- vector("list", nM)
-
-for (i in 1:nM) {
-  muestra <- data.frame(M=numeric(nY), yield=0, K=0)
-  cat('No. de M =', i, '\n')
-  for (j in 1:nY) {
-    cat('\tNo. de yield =', j, '\n')
-    count <- 0
-    while (count < 20) {
-      count <- count + 1
-      y <- vectorY[j] ^ 2
-      m <- 10 ^ vectorM[i]
-      run <- ibm(lands=isla, yield=y, tfinal=tf[i],
-                 M=m, verboso=FALSE)
-      if (!run$extinction)
-        break
-    }
-    last <- length(run$pop)
-    if (run$extinction) {
-      muestra[j, ] <- c(run$parms$M, run$parms$yield, 0)
-    } else {
-      muestra[j, ] <- c(run$parms$M, run$parms$yield, mean(run$pop[mintf[i]:last]))
-    }
-    nombrerun <- paste('run-M-', i, '-yield-', j, 'RData', sep='')
-    save(run, file=file.path(directorio, 'corridas', nombrerun))
+plotgvis <- function(x, from=1, to=length(x$pop)) {
+# x: objeto ibm
+#   require(ggplot2)
+  require(googleVis)
+#   require(Hmisc)
+  rec    <- x$record[from:to]
+  total  <- sapply(rec, nrow)
+  tiempo <- rep.int(1:length(total), total)
+  fecha  <- as.Date(tiempo, origin='0/1/1')
+  tabla  <- data.frame(time=fecha, foodAcum=0, name=0, m=0, reser=0, x=0, y=0)
+  for(i in 1:length(total)) {
+    tabla[tiempo == i, -1] <- rec[[i]]
   }
-  listaM[[i]] <- muestra[,]
-  nombre <- paste('muestra-M-', i, '.RData', sep='')
-  save(muestra, file=file.path(directorio, nombre))
+  stateSettings <- '{"nonSelectedAlpha":0.4,"playDuration":15000,"duration":{"multiplier":1,"timeUnit":"D"},"xZoomedIn":false,"xAxisOption":"5","uniColorForNonSelected":false,"xZoomedDataMin":0,"iconKeySettings":[],"colorOption":"_UNIQUE_COLOR","yZoomedIn":false,"time":"1900-01-02","showTrails":true,"orderedByX":false,"xZoomedDataMax":12,"yZoomedDataMin":0,"iconType":"BUBBLE","xLambda":1,"dimensions":{"iconDimensions":["dim0"]},"orderedByY":false,"yLambda":1,"yZoomedDataMax":11.8780815,"sizeOption":"3","yAxisOption":"6"}'
+  # Note: this are the settings I would choose for a default view, but it
+  # doesn't seem to work properly... hope it gets right in next versions.
+
+  gvisObj <- gvisMotionChart(tabla, timevar="time", idvar="name",
+                             options=list(state=stateSettings))
+  plot(gvisObj)
+  out <- list(gvis=gvisObj, tabla=tabla)
+
+  # Outgoing message:
+  cat("Change settings manually in the browser. The method showed\n")
+  cat("in the documentation doesn't seem to work.\n")
+
+  class(out) <- 'ibmGvis'
+  invisible(out)
 }
 
+plot.ibmGvis <- function(x, ...)
+  plot(x$gvis, ...)

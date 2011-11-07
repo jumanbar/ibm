@@ -441,8 +441,11 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
   coordsAll <- as.data.frame(coordsAll)
   names(coordsAll) <- c('x', 'y')
 
-  parms <- list(dim_=dim_, dist_=dist_, lmax_=lmax_, n_=n_, rdist_=rdist_, type=type)  
-  out <- list(areas=areas, belong=belong, coordsAll=coordsAll, parms=parms, pos=pos)
+  frm <- formals()
+  parms <- lapply(names(frm), get, envir=sys.parent(0))
+  names(parms) <- names(frm)
+  out <- list(areas=areas, belong=belong, coordsAll=coordsAll,
+              parms=parms, pos=pos)
   class(out) <- 'lands'
   return(out)
 
@@ -493,7 +496,8 @@ mvar <- function(m_) {
 ############
 plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
-            resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2), ...) {
+            resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2),
+            ..., lang='en') {
 
   M         <- x$parms$M
   parches   <- x$lands
@@ -602,6 +606,10 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
       points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
       par(mfcol=c(1,1))
   }
+  if (kind %in% c('gvis', 4)) {
+    out <- plotgvis(x, from=ini, to=fin, lang=lang)
+    invisible(out)
+  }
 }
 ############
 ############
@@ -612,6 +620,39 @@ plot.lands <- function(x, yield=1, pasto=rep(yield, nrow(x$coordsAll)), cex.gras
     rm(cex.grass)
     })
 }
+############
+############
+plotgvis <- function(x, from=1, to=length(x$pop), lang='en') {
+# x: objeto ibm
+  require(googleVis)
+  rec    <- x$record[from:to]
+  total  <- sapply(rec, nrow)
+  tiempo <- rep.int(1:length(total), total)
+  fecha  <- as.Date(tiempo, origin='0/1/1')
+  tabla  <- data.frame(time=fecha, foodAcum=0, name=0, m=0, reser=0, x=0, y=0)
+  for(i in 1:length(total))
+    tabla[tiempo == i, -1] <- rec[[i]]
+
+  stateSettings <- '{"nonSelectedAlpha":0.4,"playDuration":15000,"duration":{"multiplier":1,"timeUnit":"D"},"xZoomedIn":false,"xAxisOption":"5","uniColorForNonSelected":false,"xZoomedDataMin":0,"iconKeySettings":[],"colorOption":"_UNIQUE_COLOR","yZoomedIn":false,"time":"1900-01-02","showTrails":true,"orderedByX":false,"xZoomedDataMax":12,"yZoomedDataMin":0,"iconType":"BUBBLE","xLambda":1,"dimensions":{"iconDimensions":["dim0"]},"orderedByY":false,"yLambda":1,"yZoomedDataMax":11.8780815,"sizeOption":"3","yAxisOption":"6"}'
+  # Note: this are the settings I would choose for a default view, but it
+  # doesn't seem to work properly... hope it gets right in next versions. For this reason the column order is changed:
+
+  tabla <- tabla[,c(6, 7, 5, 4, 2, 1, 3)]
+
+  gvisObj <- gvisMotionChart(tabla, timevar="time", idvar="name",
+                             options=list(state=stateSettings,
+                                          gvis.editor='B',
+                                          gvis.language=lang))
+  plot(gvisObj)
+  out <- list(gvis=gvisObj, tabla=tabla)
+
+  class(out) <- 'ibmGvis'
+  invisible(out)
+}
+
+plot.ibmGvis <- function(x, ...)
+  plot(x$gvis, ...)
+
 ############
 ############
 powerPts <- function(x, ptExp) {
@@ -625,7 +666,8 @@ print.ibm <- function(x, stats=TRUE) {
     print(x$lands)
   }
 
-  if (stats) cat(paste('\nYIELD = ', round(x$parms$yield, 2), '\n', sep=''))
+  if (stats)
+    cat('\nYIELD =', round(x$parms$yield, 2), '\n')
 
   tiempo   <- length(x$pop)
   halfTime <- round(tiempo / 2)
@@ -633,28 +675,32 @@ print.ibm <- function(x, stats=TRUE) {
   mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
   pop2     <- mean(x$pop[halfTime:tiempo])
   mig2     <- mean(x$totalMigra[halfTime:tiempo])
+  LF       <- x$parms$levelFocus
 
   lands <- x$lands
   totalPatches0 <- with(lands, length(pos) ^ parms$dim_)
   xypos <- x$record[[tiempo]][, c('x', 'y')]
   count <- 0
-  for (i in 1:totalPatches0) {
-    vec <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
-    count <- count + (length(vec) > 0)
+  if (length(x$record[[tiempo]]) > 0) {
+    for (i in 1:totalPatches0) {
+      vec <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
+      count <- count + (length(vec) > 0)
+    }
   }
   patch0    <- count / totalPatches0
   nPatches  <- length(x$vecinos[[tiempo]])
-  nVecinos  <- sapply(x$vecinos[[tiempo]], length)
-  nOccupied <- sum(sum(nVecinos > 0))
+  nVecinos  <- sapply(x$vecinos[[tiempo]], countPositives)
+  nOccupied <- sum(nVecinos > 0)
+  level <- x
   cat(paste(
     '\nTiempo total de simulación:\t', tiempo, ' iteraciones\n',
     '\nPoblación promedio, 1er. mitad:\t', round(pop1,2),
-    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n\n',
+    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n',
     '\nMigrantes promedio, 1er. mitad:\t', round(mig1,3),
-    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n\n',
+    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n',
     '\nCantidad de parches 0 ocupados (%):\t', paste(count, totalPatches0, sep='/'),
       ' (', round(100 * patch0, 2), '%)',
-    '\nCantidad de parches ocupados (%):\t', paste(nOccupied, nPatches, sep='/'),
+    '\nCantidad de parches ', LF,' ocupados (%):\t', paste(nOccupied, nPatches, sep='/'),
       ' (', round(100 * nOccupied / nPatches, 2), '%)',
     sep=''))
 
@@ -690,10 +736,12 @@ print.ibmStats <- function(x) {
 print.lands <- function(x) {
 
   with(x$parms, {
+    npatch <- (n_ ^ dim_) ^ lmax_
     cat(paste('\nPropiedades del paisaje (', type, '):\n',
-    '\tDIM = ', dim_, '\t\tDIST = ', round(dist_, 2), ' Km\n',
+    '\tDIM   = ', dim_, '\tDIST    = ', round(dist_, 2), ' Km\n',
     '\tRDIST = ', round(rdist_, 2), '\tNIVELES = ', lmax_, '\n',
-    '\tNo. PARCHES = ', n_, '\n',
+    '\tNo. PARCHES (U. BÁSICA) = ', n_, '\n',
+    '\tNo. PARCHES (TOTAL)     = ', npatch, '\n',
     sep=''))
   })
 }
@@ -912,6 +960,10 @@ stats <- function() {
   class(out) <- 'ibmStats'
   return(out)
 }
+############
+############
+countPositives <- function(x)
+  sum(x > 0)
 ############
 ############
 # TASA DE CRECIMIENTO PER CÁPITA

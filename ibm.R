@@ -87,7 +87,9 @@ ibm <- function(
   # Estadísticas (de adultos)(sólo si showStats==TRUE):
 
   # Coordenadas de los parches
+  landsisnull <- FALSE
   if (is.null(lands) || missing(lands)) {
+    landsisnull <- TRUE
     lands <- mklands(dim_=landsDim_,
                      dist_=landsDist_,
                      lmax_=landsLmax_,
@@ -116,12 +118,12 @@ ibm <- function(
   register()
 
   # Protocolo de importación de simulaciones anteriores
-  im <- NULL
   if (!is.null(import)) {
     bag <- importer(import, tfinal)
     for (i in 1:length(bag))
       assign(names(bag)[[i]], bag[[i]])
   }
+
   indStats <- stats()
   if (showStats) {
     print(indStats)
@@ -132,7 +134,7 @@ ibm <- function(
   # COMIENZAN LAS ITERACIONES
   # Seguimiento de las iteraciones
   if (showTime) {
-    cat('\n Tiempo (de ', tfinal, '),\n>>')
+    cat(paste('\n Tiempo (de ', tfinal, '),\n>>', sep=''))
     seeTime(t_ - 1, pop)
   }
 
@@ -384,6 +386,7 @@ ibm <- function(
       xypos       <- NULL
       extinction  <- TRUE
       nuevos      <- 0
+      vecinos[[t_]][1:npatch] <- 0
       #-->Valores para poner en el objeto 'record'
     }
     births[t_] <- nuevos
@@ -391,7 +394,8 @@ ibm <- function(
 
     # 7. ACTUALIZACIÓN DE LOS REGISTROS
     if (N > 0) {
-      record[[t_]] <- data.frame(foodAcum=c(oldFoodAcum, numeric(nuevos)),
+      record[[t_]] <- data.frame(
+                foodAcum=c(oldFoodAcum, numeric(nuevos)),
                 name=nombres, m=m,
                 reser=reser, #pos=pos,
                 x=xypos[,1], y=xypos[,2])
@@ -414,28 +418,29 @@ ibm <- function(
   pastoAll <- pastoAll[1:t_]
   migra    <- migra[1:t_]
   vecinos  <- vecinos[1:t_]
-  ibmpar   <- formals(ibm)
-  parms    <- lapply(ibmpar, eval, envir=ibmpar)
   llama    <- match.call()
-  if (!is.null(import)) { # ACAAAAAAA (???)
-    llama <- im$call
-    llama['tfinal'] <- tfinal
+  frm      <- formals(ibm)
+  parms    <- lapply(names(frm), get, envir=sys.parent(0))
+  names(parms) <- names(frm)
+
+  if (landsisnull)
+    parms$lands <- NULL
+
+  if (!is.null(import)) {
+    llama <- c(llama, import$call)
+    names(llama) <- paste('call', length(llama):1, sep='.')
+    parms$import <- import$call
+    if (is.null(import$lands))
+      parms$lands <- NULL
   }
-  cl <- as.list(llama)
-#   browser()
-  if (length(cl) > 1) {
-    for (k in 2:length(cl))
-      pnumb <- which(names(parms) == names(cl)[k])
-      parms[[pnumb]] <- eval(cl[[k]])
-#       parms[names(cl)[k]] <- eval(cl[[k]])
-  }
+  
   totalMigra <- sapply(migra, sum)
   ijMigra <- totalMigra / (npatch * (npatch - 1))
   #-->ijMigra: cantidad de migrantes per i ---> j (pares de parches)
   popMigra <- totalMigra / pop
   sumMig <- function(mig) sum(unlist(mig))
-  totalEmigra <- sapply(emigra, sumMig)
-  totalInmigra <- sapply(inmigra, sumMig)
+  totalEmigra <- sapply(emigra, function(x) sum(unlist(x)))
+  totalInmigra <- sapply(inmigra, function(x) sum(unlist(x)))
 
   # LISTA DE SALIDA
   out <- list(
