@@ -77,9 +77,12 @@ feed <- function(foodAcum, mei, pasto) {
 }
 ####################################
 ####################################
-# 0.1 Objetos fijos
+# 0.1 Fixed object creation:
 fixedObjects <- function() {
   with(parent.frame(), {
+    # Error tolerance:
+    tol <- 1e-6
+    # Fixed individual stats:
     m0     <- pm * M
     trsMax <- trs0 * M ^ trsExp
     trsMin <- trs0 * m0 ^ trsExp
@@ -93,6 +96,8 @@ fixedObjects <- function() {
     #  Esta medida sirve para calcular en número de descendientes de cada
     #  adulto en el momento de reproducción.
     cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
+    xypasto <- as.matrix(lands$coordsAll)
+    npatch  <- length(lands$areas[[levelFocus + 1]])
   })
 }
 ####################################
@@ -178,34 +183,30 @@ grassGrow <- function() {
 ####################################
 importer <- function(im, tfinal) {
 # im= ibm importado
+  if (im$extinction)
+    stop("The population is already extinguished!!")
   out <- NULL
   pr  <- im$parms[!(names(im$parms) %in% c('import', 'lands', 'tfinal'))]
-  out <- c(pr, im[!(names(im) %in% c('call', 'extinction'))])
+  out <- c(pr, im[names(im) != 'call'])
   out$tfinal  <- tfinal
   out$extra_t <- im$tiempo
   out <- within(out, {
+    # Objetos fijos:
+    fixedObjects()
     t_      <- length(pop)
     tplus   <- tfinal
     tfinal  <- tplus + t_
     lands   <- lands
     N       <- pop[t_]
-    m0      <- pm * M
-    trsMax  <- trs0 * M ^ trsExp
-    trsMin  <- trs0 * m0 ^ trsExp
-    minBio  <- m0 + (trsMin * E_cr / E_c)
-    B_c     <- 2 * m_c * bmr0 / M ^ (1 / 4)
-    cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
-  
-    babyBiom  <- babyBiom
-    optPatch  <- optPatch
-    foodAcum  <- record[[t_]]$foodAcum
-    nombres   <- record[[t_]]$name
-    reser     <- record[[t_]]$reser
-    lastname  <- nombres[N]
-    m         <- record[[t_]]$m; pop[1] <- N
-    xypos     <- as.matrix(im$record[[t_]][, c('x','y')])
-    indStats  <- indStats
-    pointsFun <- pointsFun
+
+    rec        <- record[[t_]]
+    foodAcum   <- rec$foodAcum
+    nombres    <- rec$name
+    reser      <- rec$reser
+    lastname   <- nombres[N]
+    m          <- rec$m
+    xypos      <- with(rec, cbind(x, y))
+    dim(xypos) <- c(N, 2)
 
     pastoAll <- c(pastoAll, vector('list', tplus))
     pasto <- pastoAll[[t_]]
@@ -220,6 +221,10 @@ importer <- function(im, tfinal) {
     record <- c(record, vector('list', tplus))
     migra <- c(migra, vector('list', tplus))
     migra_t <- migra[[t_]]
+    emigra <- c(emigra, vector('list', tplus))
+    emigra_t <- emigra[[t_]]
+    inmigra <- c(inmigra, vector('list', tplus))
+    inmigra_t <- inmigra[[t_]]
     vecinos <- c(vecinos, vector('list', tplus))
     vecinos_t <- vecinos[[t_]]
     t_ <- t_ + 1
@@ -748,6 +753,9 @@ print.ibm <- function(x, stats=TRUE) {
     '\nTIEMPO TOTAL DE SIMULACIÓN:\t', round(x$tiempo, 1),
     's.\n\n',
     sep=''))
+
+  if (x$extinction)
+    cat('>>> The population collapsed!\n')
 }
 ####################################
 ####################################
@@ -806,7 +814,12 @@ rectas <- function(tabla) {
 # 0.3 Registros:
 register <- function() {
   with(parent.frame(), {
-    #  0.3.a Vectores
+    #  0.3.a Variables
+    # tol: variable interna, para corregir errores de presición
+    tol <- 1e-6
+    # extinciton: variable indicadora de extinción:
+    extinction <- FALSE
+    #  0.3.b Vectores
     pasto         <- rep.int(yield, nrow(xypasto))
     pastoAll      <- vector('list', length=tfinal)
     pastoAll[[1]] <- pasto
@@ -816,7 +829,7 @@ register <- function() {
     extra_t       <- 0
     t_ <- 2; pop[1] <- N
   
-    #  0.3.b Tabla
+    #  0.3.c Tabla
     record      <- vector('list', tfinal)
     record[[1]] <- data.frame(foodAcum=foodAcum,
                 name=nombres, m=m, #pos=pos,
@@ -824,8 +837,7 @@ register <- function() {
                 x=xypos[,1],
                 y=xypos[,2])
   
-    # 0.3.c Migración
-    npatch  <- length(lands$areas[[levelFocus + 1]])
+    # 0.3.d Migración
     migra   <- vector('list', tfinal)
     migra_t <- matrix(0, npatch, npatch) -> migra[[1]]
     #-->migra_t[i,j] = migración de j --> i

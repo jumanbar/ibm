@@ -67,13 +67,12 @@ ibm <- function(
       trsExp=1,
       verboso=TRUE,
       yield=100) {
+
   # 0. INICIALIZACIONES
   # Comienza el conteo de tiempo:
   ptm <- proc.time()[3]
-  # tol: variable interna, para corregir errores de presición
-  tol <- 1e-6
-  # extinciton: variable indicadora de extinción:
-  extinction <- FALSE
+  landsisnull <- FALSE
+
   # paquetes necesarios:
   require(splancs, quietly=TRUE)
   require(ellipse, quietly=TRUE)
@@ -84,41 +83,34 @@ ibm <- function(
   }
   if (verboso)
     cat('\n-- COMIENZA LA SIMULACIÓN --\n\n')
-  # Estadísticas (de adultos)(sólo si showStats==TRUE):
 
-  # Coordenadas de los parches
-  landsisnull <- FALSE
-  if (is.null(lands) || missing(lands)) {
-    landsisnull <- TRUE
-    lands <- mklands(dim_=landsDim_,
-                     dist_=landsDist_,
-                     lmax_=landsLmax_,
-                     n_=landsN_,
-                     rdist_=landsRdist_,
-                     type=landsType)
-  }
-  landsLmax_ <- lands$parms$lmax_
-  if (levelFocus >= landsLmax_)
-  levelFocus <- landsLmax_ - 1
-  #-->Si no se hace esta corrección va a dar error
-  if (levelFocus >= landsLmax_)
-    levelFocus <- landsLmax_ - 1
-  if (levelSeeds >= landsLmax_)
-    levelSeeds <- landsLmax_ - 1
-    
-  xypasto <- as.matrix(lands$coordsAll)
+  if (is.null(import)) {  
+    # Coordenadas de los parches
+    if (is.null(lands) || missing(lands)) {
+      landsisnull <- TRUE
+      lands <- mklands(dim_=landsDim_,
+                       dist_=landsDist_,
+                       lmax_=landsLmax_,
+                       n_=landsN_,
+                       rdist_=landsRdist_,
+                       type=landsType)
+    }
+    landsLmax_ <- lands$parms$lmax_
+    if (levelFocus >= landsLmax_)
+      levelFocus <- landsLmax_ - 1
+      #-->Si no se hace esta corrección va a dar error
+  
+    # 0.1 Objetos fijos
+    fixedObjects()
+  
+    # 0.2 Individuos iniciales
+    indivSeed()
+  
+    # 0.3 Registros iniciales:
+    register()
 
-  # 0.1 Objetos fijos
-  fixedObjects()
-
-  # 0.2 Individuos iniciales
-  indivSeed() # New Individuals
-
-  # 0.3 Registros:
-  register()
-
-  # Protocolo de importación de simulaciones anteriores
-  if (!is.null(import)) {
+  } else {
+    # Protocolo de importación de simulaciones anteriores
     bag <- importer(import, tfinal)
     for (i in 1:length(bag))
       assign(names(bag)[[i]], bag[[i]])
@@ -126,6 +118,7 @@ ibm <- function(
 
   indStats <- stats()
   if (showStats) {
+    # Estadísticas (de adultos):
     print(indStats)
     print(lands)
     cat('\nYIELD = ', round(yield, 2), '\n', sep='')
@@ -304,8 +297,10 @@ ibm <- function(
     for (i in 1:npatch) {
       vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
       vecinos_t[[i]] <- nombres[vec]
-      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]], vecinos_t[[i]]))
-      inmigra_t[[i]] <- setdiff(vecinos_t[[i]], vecinos[[t_ - 1]][[i]])
+      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
+                                                 vecinos_t[[i]]))
+      inmigra_t[[i]] <- setdiff(vecinos_t[[i]],
+                                vecinos[[t_ - 1]][[i]])
     }
 
     for (i in 1:npatch) {
@@ -418,6 +413,8 @@ ibm <- function(
   pastoAll <- pastoAll[1:t_]
   migra    <- migra[1:t_]
   vecinos  <- vecinos[1:t_]
+  emigra   <- emigra[1:t_]
+  inmigra  <- inmigra[1:t_]
   llama    <- match.call()
   frm      <- formals(ibm)
   parms    <- lapply(names(frm), get, envir=sys.parent(0))
@@ -448,9 +445,11 @@ ibm <- function(
     births=births,
     deaths=deaths,
     call=llama,
+    emigra=emigra,
     extinction=extinction,
     ijMigra=ijMigra,
     indStats=indStats,
+    inmigra=inmigra,
     lands=lands,
     migra=migra,
     optPatch=optPatch,
