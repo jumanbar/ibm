@@ -295,7 +295,7 @@ ibm <- function(
     extraBiom[extraBiom < 0] <- 0
 
     # 1.5 REGISTRO DE MIGRACIONES
-    for (i in 1:npatch) {
+    for (i in 1:npatchFocus) {
       vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
       vecinos_t[[i]] <- nombres[vec]
       emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
@@ -304,8 +304,8 @@ ibm <- function(
                                 vecinos[[t_ - 1]][[i]])
     }
 
-    for (i in 1:npatch) {
-        for (j in (1:npatch)[-i]) {
+    for (i in 1:npatchFocus) {
+        for (j in (1:npatchFocus)[-i]) {
         common <- intersect(emigra_t[[j]],  # parche de origen
                             vecinos_t[[i]]) # parche de destino
         migra_t[i,j]  <- length(common)
@@ -382,7 +382,7 @@ ibm <- function(
       xypos       <- NULL
       extinction  <- TRUE
       nuevos      <- 0
-      vecinos[[t_]][1:npatch] <- 0
+      vecinos[[t_]][1:npatchFocus] <- 0
       #-->Valores para poner en el objeto 'record'
     }
     births[t_] <- nuevos
@@ -410,6 +410,8 @@ ibm <- function(
   # 8. PREPARACIÓN DE LA SALIDA
   t_       <- t_ - 1
   pop      <- pop[1:t_]
+  births   <- births[1:t_]
+  deaths   <- deaths[1:t_]
   record   <- record[1:t_]
   pastoAll <- pastoAll[1:t_]
   migra    <- migra[1:t_]
@@ -433,7 +435,7 @@ ibm <- function(
   }
   
   totalMigra <- sapply(migra, sum)
-  ijMigra <- totalMigra / (npatch * (npatch - 1))
+  ijMigra <- totalMigra / (npatchFocus * (npatchFocus - 1))
   #-->ijMigra: cantidad de migrantes per i ---> j (pares de parches)
   popMigra <- totalMigra / pop
   sumMig <- function(mig) sum(unlist(mig))

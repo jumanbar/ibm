@@ -97,7 +97,7 @@ fixedObjects <- function() {
     #  adulto en el momento de reproducción.
     cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
     xypasto <- as.matrix(lands$coordsAll)
-    npatch  <- length(lands$areas[[levelFocus + 1]])
+    npatchFocus <- length(lands$areas[[levelFocus + 1]])
   })
 }
 ####################################
@@ -521,6 +521,8 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
   ini   <- ifelse(missing(from), 1, from)
   fin   <- ifelse(missing(to), tfinal, to)
   times <- ini:fin
+  if (fin > tfinal)
+    stop('Argument "to" is too great!')
   
   x.lims <- y.lims  <- range(pos)
   ancho <- diff(x.lims)
@@ -839,15 +841,15 @@ register <- function() {
   
     # 0.3.d Migración
     migra   <- vector('list', tfinal)
-    migra_t <- matrix(0, npatch, npatch) -> migra[[1]]
+    migra_t <- matrix(0, npatchFocus, npatchFocus) -> migra[[1]]
     #-->migra_t[i,j] = migración de j --> i
     emigra    <- vector('list', tfinal)
-    emigra_t  <- vector('list', npatch)
+    emigra_t  <- vector('list', npatchFocus)
     inmigra   <- vector('list', tfinal)
-    inmigra_t <- vector('list', npatch)
+    inmigra_t <- vector('list', npatchFocus)
     vecinos   <- vector('list', tfinal)
-    vecinos_t <- vector('list', npatch)
-    for (v in 1:npatch) {
+    vecinos_t <- vector('list', npatchFocus)
+    for (v in 1:npatchFocus) {
       emigra_t[[v]]  <- 0
       inmigra_t[[v]] <- 0
       vecinos_t[[v]] <- nombres[inpip(xypos,
