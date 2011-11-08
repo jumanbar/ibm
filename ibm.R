@@ -132,16 +132,17 @@ ibm <- function(
   }
 
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
-    # Alometrías et al.:
-    icl <- icl0 * m ^ iclExp
-    mmd <- mmd0 * m ^ mmdExp -> restoMov
-    mmc <- mmd  * icl
-    mpd <- mpd0 * m ^ mpdExp
-    bmr <- bmr0 * m ^ bmrExp
-    mei <- mei0 * bmr
-    tmc <- B_c  * m / E_cr
-    #-->tmc = "total maitenance cost"
-    trs <- trs0 * m ^ trsExp
+    # Atributos individuales según el tamaño corporal:
+    icl <- ICL * m / M
+    mmd <- MMD * m / M
+    mmd -> restoMov
+    mmc <- mmd * icl
+    mpd <- MPD * m / M
+    bmr <- BMR * m / M
+    mei <- MEI * m / M
+    tmc <- TMC * m / M
+    trs <- TRS * m / M
+
     if (ptsMode == 'PBB') {
       psi <- npsi * mei * m_c / E_cr - tmc
     } else {
