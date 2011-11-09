@@ -61,11 +61,12 @@ chooseQuant <- function(puntaje, critQuant=0.9) {
 }
 ####################################
 ####################################
-distancias <- function(xyInd, xyParches) 
-{
-  if (!is.matrix(xyParches)) xyParches <- matrix(xyParches, ncol=2)
-  out <- sqrt((xyParches[,1] - xyInd[1]) ^ 2 + (xyParches[,2] - xyInd[2]) ^ 2)
-    return(out)
+distancias <- function(xyInd, xyParches) {
+  if (length(xyParches) == 2)
+    dim(xyParches) <- c(1, 2)
+  out <- sqrt((xyParches[,1] - xyInd[1]) ^ 2 +
+              (xyParches[,2] - xyInd[2]) ^ 2)
+  return(out)
 }
 ####################################
 ####################################
@@ -87,14 +88,7 @@ fixedObjects <- function() {
     trsMax <- trs0 * M ^ trsExp
     trsMin <- trs0 * m0 ^ trsExp
     minBio <- m0 + (trsMin * E_cr / E_c)
-    B_c    <- 2 * m_c * bmr0 / M ^ (1 / 4)
-    #->Asume que k promedio es 2 (i.e.: average energy intake = 2 * BMR)
-    #->El tejido de reserva tiene un valor diferente, del punto de vista
-    #  energético, al tejido de normal. Para simplificar los cálculos,
-    #  el valor 'minBio' es la suma del tejido normal y de reserva de un
-    #  recién nacido, pero todo en el equivalente a tejido normal.
-    #  Esta medida sirve para calcular en número de descendientes de cada
-    #  adulto en el momento de reproducción.
+    B_c    <- bmr0 * m_c * M ^ (bmrExp - 1)
     cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
     xypasto <- as.matrix(lands$coordsAll)
     npatchFocus <- length(lands$areas[[levelFocus + 1]])
@@ -764,13 +758,13 @@ print.ibm <- function(x, stats=TRUE) {
 print.ibmStats <- function(x) {
 # x es un objeto de la clase ibmStats
     with(x, {
-    cat(paste('\nAtributos individuales:\n\tMMD = ', round(MMD, 3),
+    cat(paste('Atributos individuales:\n\tMMD = ', round(MMD, 3),
       ' Km/day\tICL = ', round(ICL, 4), ' KJ/Km\tMMC = ', round(MMC, 4),
       ' KJ/day\n\tBMR = ', round(BMR,3), ' KJ/day\tMEI = ', round(MEI, 3),
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
-      ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day',
-      ' Kg\n\tREE = ', round(REE, 3), ' KJ',
+      ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 5),
+      ' KJ',
       sep=''))
     cat(paste('\n\tTAMAÑO: ', round(M, 3), ' Kg\n'))
     })
@@ -884,12 +878,12 @@ stats <- function() {
     MPD <- mpd0 * M ^ mpdExp
     BMR <- bmr0 * M ^ bmrExp
     MEI <- mei0 * BMR
-    TMC <- B_c * M / E_cr
+    TMC <- B_c * M / m_c
     TRS <- trs0 * M ^ trsExp
-    REE <- TRS * E_cr
-    PSI <- REE + npsi * MEI * m_c / E_cr - TMC
+    REE <- TRS * E_cr / m_c
+    PSI <- TRS + (npsi * MEI - TMC) * m_c / E_cr
     if (ptsMode == 'PBB')
-      PSI <- PSI - REE
+      PSI <- PSI - TRS
   
     list(MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
          MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)

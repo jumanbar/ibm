@@ -63,7 +63,7 @@ ibm <- function(
       # adults | infants | random | ratio
       sizeRatio=0.4,
       tfinal=100,
-      trs0=0.3,
+      trs0=0.1,
       trsExp=1,
       verboso=TRUE,
       yield=100) {
@@ -133,26 +133,26 @@ ibm <- function(
 
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
     # Atributos individuales según el tamaño corporal:
-    icl <- ICL * m / M
-    mmd <- MMD * m / M
+#     icl <- ICL * m / M
+    icl <- icl0 * m ^ iclExp
+#     mmd <- MMD * m / M
+    mmd <- mmd0 * m ^ mmdExp
     mmd -> restoMov
     mmc <- mmd * icl
-    mpd <- MPD * m / M
-    bmr <- BMR * m / M
+#     mpd <- MPD * m / M
+    mpd <- mpd0 * m ^ mpdExp
+    bmr <- bmr0 * m ^ bmrExp
     mei <- MEI * m / M
     tmc <- TMC * m / M
-    trs <- TRS * m / M
+    trs <- trs0 * m ^ trsExp
+    psi <- (npsi * mei - tmc) * m_c / E_cr
+    if (ptsMode != 'PBB')
+      psi <- psi + trs
+    tmcBiom <- tmc * m_c / E_cr
 
-    if (ptsMode == 'PBB') {
-      psi <- npsi * mei * m_c / E_cr - tmc
-    } else {
-      psi <- trs + npsi * mei * m_c / E_cr - tmc
-    }
 #     RCB <- - (tmc + mmc * m_c / E_cr) # mmc = maximum movement cost
 #     #-->RCB = "Random Choice Balance"
-#     NMB <- - tmc
 #     #-->"No Movement Balance"
-
     obtEner   <- numeric(N)
 
     if (randomTurn) {
@@ -167,16 +167,13 @@ ibm <- function(
       # 1. MOVIMIENTO Y ALIMENTACIÓN
       goRand  <- FALSE
       donoth  <- FALSE
-#       condA   <- sum(pasto) > tol
-#       condB   <- TRUE
       xy <- xypos[i,]
       cfa      <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
       cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
       visibles <- inpip(xypasto, cfa_i, bound=TRUE)
       # Para que arranque el while
 
-      while (sum(pasto[visibles]) > tol &&
-             restoMov[i]          > tol &&
+      while (restoMov[i]          > tol &&
              mei[i] - foodAcum[i] > tol &&
              !donoth) {
         if (is.na(optPatch[i])) {
@@ -185,14 +182,15 @@ ibm <- function(
           # 1.1 Elección del próximo parche
           # Distancia y cantidad de recursos:
           dist2visib <- distancias(xy, xypasto[visibles,])
+          # Cocientes: para establecer el costo relativo por mantenimiento.
           ratioDist  <- dist2visib / mmd[i]
           ratioRsrc  <- pasto[visibles] / mei[i]
-          #-->(Rsrc = resource)
-          flrsrc <- floor(ratioRsrc)
+          ratioRsrc  <- ifelse(ratioDist > 2.5, 0, ratioRsrc)
+          # NOTA: 2.5 es un valor arbitrario, podría ser cualquier otro...
 
           # Costos:
-          costPerDist <- ratioDist * mmc[i] * m_c / E_cr
-          costPerMant <- pmax(ratioDist, ratioRsrc) * tmc[i]
+          costPerDist <- dist2visib * icl[i] * m_c / E_cr
+          costPerMant <- pmax(ratioDist, ratioRsrc) * tmcBiom[i]
 
           # Ganancias:
           plus <- ratioRsrc * mei[i] * m_c / E_cr
@@ -200,10 +198,10 @@ ibm <- function(
           # Balance de Biomasa:
           PBB <- c(plus - (costPerDist + costPerMant),
                    # Ballance x ir a cada parche a comer
-                   - (tmc[i] + icl[i]) * restoMov[i] / mmd[i],
+                   - (tmc[i] + icl[i] * restoMov[i]) * m_c / E_cr,
                    # Balance x mov. aleatorio.
-                   - tmc[i] * max(restoMov[i] / mmd[i],
-                   1 - foodAcum[i] / mei[i]))
+                   - tmcBiom[i] * max(restoMov[i] / mmd[i],
+                                      1 - foodAcum[i] / mei[i]))
                    # Balance x quedarse en el lugar.
 
           # Incluír el costo extra por usar reservas (si PBB < 0):
@@ -221,27 +219,11 @@ ibm <- function(
           optPatch[i] <- visibles[choiceNum]
           dist2patch  <- dist2visib[choiceNum]
 
-###############
-#           if (PBB[choiceNum] == 0) {
-#             break
-#           }
-# No me acuerdo para qué está este if...
-###############
-
           # 1.1.2.1 Elegir quedarse o salir en una dirección al azar
           if (choiceNum == length(visibles) + 1)
             goRand <- TRUE
           if (choiceNum == length(visibles) + 2)
             donoth   <- TRUE
-#           if (!(goRand || donoth)) {
-#             optPatch[i] <- visibles[choiceNum]
-#             dist2patch  <- dist2visib[choiceNum]
-#             # Si veía un sólo parche y estaba sobre él, no más turno:
-#             if (length(visibles) == 1 && dist2patch < tol) {
-#               optPatch[i] <- NA
-#               break
-#             }
-#           }
         } else {
           # Si continua moviéndose desde el turno anterior...
           dist2patch <- distancias(xy, xypasto[optPatch[i],])
@@ -287,7 +269,7 @@ ibm <- function(
     }
 
     # 1.4 BALANCE DE BIOMASA DE BIOMASA (crecimiento está en el pto. 6).
-    deltaBiom <- (obtEner  - icl * (mmd - restoMov)) * m_c / E_cr - tmc
+    deltaBiom <- (obtEner - icl * (mmd - restoMov)) * m_c / E_cr - tmcBiom
     deltaBiom[deltaBiom < 0] <- deltaBiom[deltaBiom < 0] / (1 - ruc)
     reser <- reser + deltaBiom
     extraBiom <- reser - trs

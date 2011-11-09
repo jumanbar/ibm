@@ -239,7 +239,7 @@ PSI
 RCB
 # Random Choice Balance
 REE
-# 
+# Reserves Energetic Equivalence
 RUC
 # Reserves Use Cost
 TMC
