@@ -1,11 +1,11 @@
-source('ibm.R')
 
-ex <- seq(-2, 1, len=24)
-Ms <- 10 ^ ex
-
-run <- ibm(landsDist_ = 4, levelSeeds = 1,
-           mpd0 = 6, sizeMode = "random",
-           trs0 = 0.1, yield = 2000, tfinal=20000,
-           M = Ms[23])
-
-save(run, file='../saves/corrida-M=7.4.RData')
+getNormSd <- function(x, init=1) {
+  x <- x[init:length(x)]
+  v <- numeric(length(x) - 1)
+  for (i in 2:length(x))
+    v[i - 1] <- var(x[1:i])
+  s <- sqrt(v)
+  m <- cumsum(v) / (1:length(v))
+  o <- 2 * s / m
+  return(o)
+}

@@ -1,4 +1,3 @@
-
 ibm <- function(
       addGuys=TRUE,
       # agrega pibes además de los que pone por parche
@@ -65,6 +64,7 @@ ibm <- function(
       tfinal=100,
       trs0=0.1,
       trsExp=1,
+      umbralSd=10,
       verboso=TRUE,
       yield=100) {
 
@@ -360,6 +360,16 @@ ibm <- function(
     pastoAll[[t_]] <- pasto
     pop[t_] <- N
 
+    if (t_ > 1) {
+      popVar[t_ - 1]   <- var(pop[1:t_])
+      varMean[t_ - 1]   <- mean(popVar[1:(t_ - 1)])
+      normalSd[t_ - 1] <- 2 * sqrt(popVar[t_ - 1]) / varMean[t_ - 1]
+      if (normalSd[t_ - 1] < umbralSd) {
+        t_ <- t_ + 1
+        break
+      }
+    }
+
     if (showTime)
       seeTime(t_, pop)
     t_ <- t_ + 1
@@ -416,17 +426,20 @@ ibm <- function(
     inmigra=inmigra,
     lands=lands,
     migra=migra,
+    normalSd=normalSd,
     optPatch=optPatch,
     pastoAll=pastoAll,
     parms=parms,
     pointsFun=pointsFun,
     pop=pop,
     popMigra=popMigra,
+    popVar=popVar,
     record=record,
     tiempo=proc.time()[3] - ptm + extra_t,
     totalEmigra=totalEmigra,
     totalInmigra=totalInmigra,
     totalMigra=totalMigra,
+    varMean=varMean,
     vecinos=vecinos)
   class(out) <- c('ibm', class(out))
 
