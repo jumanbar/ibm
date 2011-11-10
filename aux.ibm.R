@@ -220,7 +220,7 @@ importer <- function(im, tfinal) {
     inmigra <- c(inmigra, vector('list', tplus))
     inmigra_t <- inmigra[[t_]]
     vecinos <- c(vecinos, vector('list', tplus))
-    vecinos_t <- vecinos[[t_]]
+    vec.t <- vecinos[[t_]]
     t_ <- t_ + 1
   })
   return(out)
@@ -348,15 +348,16 @@ pfGompManual <- function() {
 }
 ####################################
 ####################################
+# 1.5 REGISTRO DE MIGRACIONES
 migrator <- function() {
   with(parent.frame(), {
     for (i in 1:npatchFocus) {
       vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
       vec.t[[i]] <- nombres[vec]
-      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
+      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[tn -1]][[i]],
                                                  vec.t[[i]]))
       inmigra_t[[i]] <- setdiff(vec.t[[i]],
-                                vecinos[[t_ - 1]][[i]])
+                                vecinos[[tn - 1]][[i]])
     }
 
     for (i in 1:npatchFocus) {
@@ -368,10 +369,10 @@ migrator <- function() {
         emigra_t[[j]] <- setdiff(emigra_t[[j]], common)
       }
     }
-    vecinos[[t_]] <- vec.t
-    migra[[t_]]   <- migra_t
-    emigra[[t_]]  <- emigra_t
-    inmigra[[t_]] <- inmigra_t
+    vecinos[[tn + 1]] <- vec.t
+    migra[[tn + 1]]   <- migra_t
+    emigra[[tn + 1]]  <- emigra_t
+    inmigra[[tn + 1]] <- inmigra_t
   })
 }
 ####################################
@@ -838,10 +839,13 @@ rectas <- function(tabla) {
 register <- function() {
   with(parent.frame(), {
     #  0.3.a Variables
-    # tol: variable interna, para corregir errores de presición
     tol <- 1e-6
-    # extinciton: variable indicadora de extinción:
+    # tol: variable interna, para corregir errores de presición
     extinction <- FALSE
+    # extinciton: variable indicadora de extinción:
+    tn <- 1
+    #->"Trimer Number"
+
     #  0.3.b Vectores
     pasto         <- rep.int(yield, nrow(xypasto))
     pastoAll      <- vector('list', length=tfinal)
@@ -850,7 +854,13 @@ register <- function() {
     births        <- numeric(tfinal)
     deaths        <- numeric(tfinal)
     extra_t       <- 0
-    t_ <- 2; pop[1] <- N
+    t_ <- 2
+    pop[1] <- N
+    if (recorta) {
+      trimerMult      <- 1
+      stopPoint       <- trimerMult * interval
+      trimerFileNames <- character(floor(tfinal / interval))
+    }
   
     #  0.3.c Tabla
     record      <- vector('list', tfinal)
@@ -869,15 +879,15 @@ register <- function() {
     inmigra   <- vector('list', tfinal)
     inmigra_t <- vector('list', npatchFocus)
     vecinos   <- vector('list', tfinal)
-    vecinos_t <- vector('list', npatchFocus)
+    vec.t     <- vector('list', npatchFocus)
     for (v in 1:npatchFocus) {
       emigra_t[[v]]  <- 0
       inmigra_t[[v]] <- 0
-      vecinos_t[[v]] <- nombres[inpip(xypos,
+      vec.t[[v]] <- nombres[inpip(xypos,
                                       lands$areas[[levelFocus + 1]][[v]],
                                       bound=TRUE)]
     }
-    vecinos[[1]] <- vecinos_t
+    vecinos[[1]] <- vec.t
   })
 }
 ####################################
@@ -945,6 +955,68 @@ tasa <- function(x) {
   b <- recta$coefficients[1]
   K <- - b / a
   print(paste('El K aproximado es:', round(K, 2)))
+}
+####################################
+####################################
+trimer <- function() {
+  with(parent.frame(), {
+      if (recorta && t_ == stopPoint + 1) {
+        de.hasta <- 1:stopPoint
+        browser()
+        rec <- record[de.hasta]
+        record <- record[-de.hasta]
+        inm <- inmigra[de.hasta]
+        inmigra <- inmigra[-de.hasta]
+        emi <- emigra[de.hasta]
+        emigra <- emigra[-de.hasta]
+        pas <- pastoAll[de.hasta]
+        pastoAll <- pastoAll[-de.hasta]
+        vec <- vecinos[de.hasta]
+        vecinos <- vecinos[-de.hasta]
+        dir.create(tempdir())
+        filename <- tempfile('corrida-')
+        save(rec, inm, emi, pas, vec, file=filename)
+        trimerFileNames[trimerMult] <- filename
+        trimerMult <- trimerMult + 1
+        de.hasta <- trimerMult * interval
+      }
+  })
+}
+####################################
+####################################
+trimRecover <- function() {
+  with(parent.frame(), {
+    if (verboso)
+      cat('Recuperando los objetos almacenados en el\n')
+      cat('directorio temporal: ', tempdir(), ' \n')
+    recLen <- length(record) - 1
+    lastInterval <- t_:(t_ - recLen + 1)
+    rec <- vector('list', t_)
+    rec[[lastInterval]] <- record
+    record <- rec
+    inm <- vector('list', t_)
+    inm[[lastInterval]] <- inmigra
+    inmigra <- inm
+    emi <- vector('list', t_)
+    emi[[lastInterval]] <- emigra
+    emigra <- emi
+    pas <- vector('list', t_)
+    pas[[lastInterval]] <- pastoAll
+    pastoAll <- pas
+    vec <- vector('list', t_)
+    vec[[lastInterval]] <- vecinos
+    vecinos <- vec
+    ini <- seq(1, t_, by=interval)
+    fin <- ini + interval - 1
+    for (f in 1:trimerMult) {
+      load(trimerFileNames[f])
+      record[ini[f]:fin[f]]   <- rec
+      inmigra[ini[f]:fin[f]]  <- inm
+      emigra[ini[f]:fin[f]]   <- emi
+      pastoAll[ini[f]:fin[f]] <- pas
+      vecinos[ini[f]:fin[f]]  <- vec
+    }
+  })
 }
 ####################################
 ####################################

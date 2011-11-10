@@ -19,6 +19,7 @@ ibm <- function(
       icl0=10.68,  # KJ/km
       iclExp=0.75, # 0.70
       import=NULL,
+      interval=3000,
       lands=NULL,
       # Argumentos de landscape: sólo tienen efecto si
       # lands = NULL:
@@ -55,6 +56,7 @@ ibm <- function(
       randomTurn=TRUE,
       bmr0=293, # KJ/day ver detalles en doc.ibm.R
       bmrExp=(3/4),
+      recorta=FALSE,
       ruc=0.1,  # Costo asociado a usar las reservas
       showTime=TRUE,
       showStats=TRUE,
@@ -276,11 +278,18 @@ ibm <- function(
     reser[extraBiom > 0] <- trs[extraBiom > 0]
     extraBiom[extraBiom < 0] <- 0
 
+    if (recorta) {
+      tn <- t_ - ((trimerMult - 1) * interval)
+    } else {
+      tn <- t_
+    }
+    # AQUÍ SE ACTUALIZA tn:
+    #   [[t_]] ---> [[tn + 1]]
+
     # 1.5 REGISTRO DE MIGRACIONES
     migrator()
 
     # 2. REGENERACIÓN DE PASTO
-#     browser()
     grassGrow()
 
     # 3. SUPERVIVENCIA
@@ -343,7 +352,8 @@ ibm <- function(
       xypos       <- NULL
       extinction  <- TRUE
       nuevos      <- 0
-      vecinos[[t_]][1:npatchFocus] <- 0
+#       vecinos[[t_]][1:npatchFocus] <- 0
+      vecinos[[tn]][1:npatchFocus] <- 0
       #-->Valores para poner en el objeto 'record'
     }
     births[t_] <- nuevos
@@ -351,17 +361,24 @@ ibm <- function(
 
     # 7. ACTUALIZACIÓN DE LOS REGISTROS
     if (N > 0) {
-      record[[t_]] <- data.frame(
+#       record[[t_]] <- data.frame(
+#                 foodAcum=c(oldFoodAcum, numeric(nuevos)),
+#                 name=nombres, m=m,
+#                 reser=reser, #pos=pos,
+#                 x=xypos[,1], y=xypos[,2])
+      record[[tn]] <- data.frame(
                 foodAcum=c(oldFoodAcum, numeric(nuevos)),
                 name=nombres, m=m,
                 reser=reser, #pos=pos,
                 x=xypos[,1], y=xypos[,2])
     }
-    pastoAll[[t_]] <- pasto
+#     pastoAll[[t_]] <- pasto
+    pastoAll[[tn]] <- pasto
     pop[t_] <- N
 
     if (showTime)
       seeTime(t_, pop)
+    trimer()
     t_ <- t_ + 1
   }
 
@@ -370,15 +387,22 @@ ibm <- function(
 
   # 8. PREPARACIÓN DE LA SALIDA
   t_       <- t_ - 1
+  if (recorta)
+    trimRecover()
   pop      <- pop[1:t_]
   births   <- births[1:t_]
   deaths   <- deaths[1:t_]
-  record   <- record[1:t_]
-  pastoAll <- pastoAll[1:t_]
+#   record   <- record[1:t_]
+  record   <- record[1:tn]
+#   pastoAll <- pastoAll[1:t_]
+  pastoAll <- pastoAll[1:tn]
   migra    <- migra[1:t_]
-  vecinos  <- vecinos[1:t_]
+#   vecinos  <- vecinos[1:t_]
+  vecinos  <- vecinos[1:tn]
   emigra   <- emigra[1:t_]
+  emigra   <- emigra[1:tn]
   inmigra  <- inmigra[1:t_]
+  inmigra  <- inmigra[1:tn]
   llama    <- match.call()
   frm      <- formals(ibm)
   parms    <- lapply(names(frm), get, envir=sys.parent(0))
