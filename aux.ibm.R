@@ -348,7 +348,34 @@ pfGompManual <- function() {
 }
 ####################################
 ####################################
+migrator <- function() {
+  with(parent.frame(), {
+    for (i in 1:npatchFocus) {
+      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
+      vec.t[[i]] <- nombres[vec]
+      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
+                                                 vec.t[[i]]))
+      inmigra_t[[i]] <- setdiff(vec.t[[i]],
+                                vecinos[[t_ - 1]][[i]])
+    }
 
+    for (i in 1:npatchFocus) {
+        for (j in (1:npatchFocus)[-i]) {
+        common <- intersect(emigra_t[[j]],  # parche de origen
+                            vec.t[[i]]) # parche de destino
+        migra_t[i,j]  <- length(common)
+        #-->migra[i,j] = migración de j --> i
+        emigra_t[[j]] <- setdiff(emigra_t[[j]], common)
+      }
+    }
+    vecinos[[t_]] <- vec.t
+    migra[[t_]]   <- migra_t
+    emigra[[t_]]  <- emigra_t
+    inmigra[[t_]] <- inmigra_t
+  })
+}
+####################################
+####################################
 mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
 # ejemplo:
 #   plot(mklands())

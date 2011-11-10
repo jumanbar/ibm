@@ -277,28 +277,7 @@ ibm <- function(
     extraBiom[extraBiom < 0] <- 0
 
     # 1.5 REGISTRO DE MIGRACIONES
-    for (i in 1:npatchFocus) {
-      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
-      vecinos_t[[i]] <- nombres[vec]
-      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
-                                                 vecinos_t[[i]]))
-      inmigra_t[[i]] <- setdiff(vecinos_t[[i]],
-                                vecinos[[t_ - 1]][[i]])
-    }
-
-    for (i in 1:npatchFocus) {
-        for (j in (1:npatchFocus)[-i]) {
-        common <- intersect(emigra_t[[j]],  # parche de origen
-                            vecinos_t[[i]]) # parche de destino
-        migra_t[i,j]  <- length(common)
-        #-->migra[i,j] = migración de j --> i
-        emigra_t[[j]] <- setdiff(emigra_t[[j]], common)
-      }
-    }
-    vecinos[[t_]] <- vecinos_t
-    migra[[t_]]   <- migra_t
-    emigra[[t_]]  <- emigra_t
-    inmigra[[t_]] <- inmigra_t
+    migrator()
 
     # 2. REGENERACIÓN DE PASTO
 #     browser()
