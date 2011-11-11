@@ -213,6 +213,7 @@ importer <- function(im, tfinal) {
 
     rec        <- record[[t_]]
     foodAcum   <- rec$foodAcum
+    lifeSpan   <- rec$lifeSpan
     nombres    <- rec$name
     reser      <- rec$reser
     lastname   <- nombres[N]
@@ -809,7 +810,7 @@ print.ibmStats <- function(x) {
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
       ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 5),
-      ' KJ',
+      ' KJ\t\tALS = ', round(ALS), ' days\n',
       sep=''))
     cat(paste('\n\tTAMAÑO: ', round(M, 3), ' Kg\n'))
     })
@@ -860,6 +861,7 @@ register <- function() {
     tol <- 1e-6
     # extinciton: variable indicadora de extinción:
     extinction <- FALSE
+
     #  0.3.b Vectores
     pasto         <- rep.int(yield, nrow(xypasto))
     pastoAll      <- vector('list', length=tfinal)
@@ -867,6 +869,9 @@ register <- function() {
     pop           <- numeric(tfinal)
     births        <- numeric(tfinal)
     deaths        <- numeric(tfinal)
+    ALS           <- als0 * M ^ alsExp
+#     lifeSpan      <- rpois(N, ALS)
+    lifeSpan      <- round(runif(N, ALS * 0.05, ALS * .95))
     extra_t       <- 0
     t_ <- 2; pop[1] <- N
   
@@ -874,7 +879,7 @@ register <- function() {
     record      <- vector('list', tfinal)
     record[[1]] <- data.frame(foodAcum=foodAcum,
                 name=nombres, m=m, #pos=pos,
-                reser=reser,
+                reser=reser, lifeSpan=lifeSpan,
                 x=xypos[,1],
                 y=xypos[,2])
   
@@ -916,6 +921,7 @@ seeTime <- function(t_, pop)
 stats <- function() {
   require(ellipse, quietly=TRUE)
   out <- with(parent.frame(), {
+    ALS <- als0 * M ^ alsExp
     MMD <- mmd0 * M ^ mmdExp
     ICL <- icl0 * M ^ iclExp
     MMC <- MMD * ICL
@@ -930,7 +936,7 @@ stats <- function() {
     if (ptsMode == 'PBB')
       PSI <- PSI - TRS
   
-    list(MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
+    list(ALS=ALS, MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
          MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)
   })
   class(out) <- 'ibmStats'

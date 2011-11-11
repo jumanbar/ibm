@@ -2,6 +2,8 @@
 ibm <- function(
       addGuys=TRUE,
       # agrega pibes además de los que pone por parche
+      als0=1000,
+      alsExp=1/4,
       chFun=chooseFromAll, # chooseMax | chooseFromAll | chooseQuant
       chFun.quant=.85,
       mmd0=3 * 1.04,
@@ -59,7 +61,7 @@ ibm <- function(
       showTime=TRUE,
       showStats=TRUE,
       showSummary=TRUE,
-      sizeMode='ratio',
+      sizeMode='random',
       # adults | infants | random | ratio
       sizeRatio=0.4,
       tfinal=100,
@@ -131,18 +133,16 @@ ibm <- function(
     seeTime(t_ - 1, pop)
   }
 
-  nuevos <- 0
-  # borrar!
+#   nuevos <- 0
+#   dir.create(tempdir())
+#   tmp <- tempfile()
 
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
     # Atributos individuales según el tamaño corporal:
-#     icl <- ICL * m / M
     icl <- icl0 * m ^ iclExp
-#     mmd <- MMD * m / M
     mmd <- mmd0 * m ^ mmdExp
     mmd -> restoMov
     mmc <- mmd * icl
-#     mpd <- MPD * m / M
     mpd <- mpd0 * m ^ mpdExp
     bmr <- bmr0 * m ^ bmrExp
     mei <- MEI * m / M
@@ -165,7 +165,7 @@ ibm <- function(
       # Con esta opción se mantiene el orden 4ever
       index <- 1:N
     }
-    conteo <- 0
+#     conteo <- 0
 
     for (i in index) {
       # 1. MOVIMIENTO Y ALIMENTACIÓN
@@ -176,8 +176,8 @@ ibm <- function(
       cfa      <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
       cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
       visibles <- inpip(xypasto, cfa_i, bound=TRUE)
-      if (length(visibles) == 0 && m[i] < M / 2)
-        conteo <- conteo + 1
+#       if (length(visibles) == 0 && m[i] < M / 2)
+#         conteo <- conteo + 1
       # Para que arranque el while
 
       while (restoMov[i]          > tol &&
@@ -278,7 +278,8 @@ ibm <- function(
       }
       obtEner[i] <- foodAcum[i]
     }
-    cat('(', round(conteo / sum(m < M / 2), 2), ')', sep='')
+#     cat('(', round(conteo / sum(m < M / 2), 2), ')', sep='')
+#     cat(conteo / sum(m < M / 2), '', file=tmp, append=TRUE)
 
     # 1.4 BALANCE DE BIOMASA DE BIOMASA (crecimiento está en el pto. 6).
     deltaBiom <- (obtEner - icl * (mmd - restoMov)) * m_c / E_cr - tmcBiom
@@ -293,17 +294,21 @@ ibm <- function(
 
     # 2. REGENERACIÓN DE PASTO
 #     browser()
+    pastoAll[[t_]] <- pasto
     grassGrow()
 
     # 3. SUPERVIVENCIA
-    alive      <- (1:N)[!(reser < 0)]
-    N          <- length(alive)
-    deaths[t_] <- sum(reser < 0)
-
+    lifeSpan <- lifeSpan - 1
+    survive  <- reser >= 0 & lifeSpan > 0
+    alive    <- (1:N)[survive]
+    N        <- sum(survive)
+    deaths[t_] <- sum(!survive)
+    
     if (N > 0) {
       oldFoodAcum <- foodAcum[alive]
       #-->Valores para poner en el objeto 'record'
       extraBiom <- extraBiom[alive]
+      lifeSpan  <- lifeSpan[alive]
       nombres   <- nombres[alive]
       reser     <- reser[alive]
       m         <- m[alive]
@@ -333,6 +338,7 @@ ibm <- function(
           nuevos       <- sum(crios)
           nombres      <- c(nombres, (lastname + 1):(lastname + nuevos))
           lastname     <- lastname + nuevos
+          lifeSpan     <- c(lifeSpan, rpois(nuevos, ALS))
           m            <- c(m, rep(m0, nuevos))
           reser        <- c(reser, rep(trsMin, nuevos))
           babyBiom     <- c(babyBiom, numeric(nuevos))
@@ -354,6 +360,7 @@ ibm <- function(
       m           <- NULL
       xypos       <- NULL
       extinction  <- TRUE
+      lifeSpan    <- NULL
       nuevos      <- 0
       vecinos[[t_]][1:npatchFocus] <- 0
       #-->Valores para poner en el objeto 'record'
@@ -366,10 +373,9 @@ ibm <- function(
       record[[t_]] <- data.frame(
                 foodAcum=c(oldFoodAcum, numeric(nuevos)),
                 name=nombres, m=m,
-                reser=reser, #pos=pos,
+                reser=reser, lifeSpan=lifeSpan,
                 x=xypos[,1], y=xypos[,2])
     }
-    pastoAll[[t_]] <- pasto
     pop[t_] <- N
 
     if (showTime)

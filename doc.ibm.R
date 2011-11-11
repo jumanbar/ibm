@@ -67,6 +67,11 @@ yield=100
 gompAuto=TRUE
 gompB=-5.5
 gompC=-1.5
+
+als0=1000 # Días
+alsExp=1/4
+# Average Life Span (Peters 1983)
+#->Sale de las ecuaciones de West et al. 2001 (curva de crecimiento)
 mei0=1.
 # "Maximum Energy Intake"
 # El consumo máximo de cada individuo por unidad de tiempo
