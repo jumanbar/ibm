@@ -9,3 +9,6 @@ run <- ibm(landsDist_ = 4, levelSeeds = 1,
            M = Ms[23])
 
 save(run, file='../saves/corrida-M=7.4.RData')
+
+# ibm(landsDist_ = 4, levelSeeds = 1, M = 10, mpd0 = 6, sizeMode = "random", 
+#     tfinal = 500, trs0 = 0.1, yield = 2000)

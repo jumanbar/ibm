@@ -238,7 +238,7 @@ importer <- function(im, tfinal) {
     inmigra <- c(inmigra, vector('list', tplus))
     inmigra_t <- inmigra[[t_]]
     vecinos <- c(vecinos, vector('list', tplus))
-    vecinos_t <- vecinos[[t_]]
+    vec.t <- vecinos[[t_]]
     t_ <- t_ + 1
   })
   return(out)
@@ -887,15 +887,15 @@ register <- function() {
     inmigra   <- vector('list', tfinal)
     inmigra_t <- vector('list', npatchFocus)
     vecinos   <- vector('list', tfinal)
-    vecinos_t <- vector('list', npatchFocus)
+    vec.t <- vector('list', npatchFocus)
     for (v in 1:npatchFocus) {
       emigra_t[[v]]  <- 0
       inmigra_t[[v]] <- 0
-      vecinos_t[[v]] <- nombres[inpip(xypos,
+      vec.t[[v]] <- nombres[inpip(xypos,
                                       lands$areas[[levelFocus + 1]][[v]],
                                       bound=TRUE)]
     }
-    vecinos[[1]] <- vecinos_t
+    vecinos[[1]] <- vec.t
   })
 }
 ####################################

@@ -131,6 +131,9 @@ ibm <- function(
     seeTime(t_ - 1, pop)
   }
 
+  nuevos <- 0
+  # borrar!
+
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
     # Atributos individuales según el tamaño corporal:
 #     icl <- ICL * m / M
@@ -162,15 +165,19 @@ ibm <- function(
       # Con esta opción se mantiene el orden 4ever
       index <- 1:N
     }
+    conteo <- 0
 
     for (i in index) {
       # 1. MOVIMIENTO Y ALIMENTACIÓN
+#       if (m[i] == m0) browser()
       goRand  <- FALSE
       donoth  <- FALSE
       xy <- xypos[i,]
       cfa      <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
       cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
       visibles <- inpip(xypasto, cfa_i, bound=TRUE)
+      if (length(visibles) == 0 && m[i] < M / 2)
+        conteo <- conteo + 1
       # Para que arranque el while
 
       while (restoMov[i]          > tol &&
@@ -220,10 +227,14 @@ ibm <- function(
           dist2patch  <- dist2visib[choiceNum]
 
           # 1.1.2.1 Elegir quedarse o salir en una dirección al azar
-          if (choiceNum == length(visibles) + 1)
+          if (length(visibles) == 0) {
             goRand <- TRUE
-          if (choiceNum == length(visibles) + 2)
-            donoth   <- TRUE
+          } else {
+            if (choiceNum == length(visibles) + 1)
+              goRand <- TRUE
+            if (choiceNum == length(visibles) + 2)
+              donoth   <- TRUE
+          }
         } else {
           # Si continua moviéndose desde el turno anterior...
           dist2patch <- distancias(xy, xypasto[optPatch[i],])
@@ -267,6 +278,7 @@ ibm <- function(
       }
       obtEner[i] <- foodAcum[i]
     }
+    cat('(', round(conteo / sum(m < M / 2), 2), ')', sep='')
 
     # 1.4 BALANCE DE BIOMASA DE BIOMASA (crecimiento está en el pto. 6).
     deltaBiom <- (obtEner - icl * (mmd - restoMov)) * m_c / E_cr - tmcBiom
