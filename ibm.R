@@ -58,6 +58,7 @@ ibm <- function(
       bmr0=293, # KJ/day ver detalles en doc.ibm.R
       bmrExp=(3/4),
       ruc=0.1,  # Costo asociado a usar las reservas
+      saveRecord=TRUE,
       showTime=TRUE,
       showStats=TRUE,
       showSummary=TRUE,
@@ -113,6 +114,7 @@ ibm <- function(
 
   } else {
     # Protocolo de importación de simulaciones anteriores
+    # NO IMPLEMENTA LA IMPORTACIÓN AÚN!
     bag <- importer(import, tfinal)
     for (i in 1:length(bag))
       assign(names(bag)[[i]], bag[[i]])
@@ -290,11 +292,13 @@ ibm <- function(
     extraBiom[extraBiom < 0] <- 0
 
     # 1.5 REGISTRO DE MIGRACIONES
-    migrator()
+    if (saveRecord)
+      migrator()
 
     # 2. REGENERACIÓN DE PASTO
 #     browser()
-    pastoAll[[t_]] <- pasto
+    if (saveRecord)
+      pastoAll[[t_]] <- pasto
     grassGrow()
 
     # 3. SUPERVIVENCIA
@@ -369,7 +373,7 @@ ibm <- function(
     N          <- N + nuevos
 
     # 7. ACTUALIZACIÓN DE LOS REGISTROS
-    if (N > 0) {
+    if (N > 0 && saveRecord) {
       record[[t_]] <- data.frame(
                 foodAcum=c(oldFoodAcum, numeric(nuevos)),
                 name=nombres, m=m,
@@ -391,12 +395,14 @@ ibm <- function(
   pop      <- pop[1:t_]
   births   <- births[1:t_]
   deaths   <- deaths[1:t_]
-  record   <- record[1:t_]
-  pastoAll <- pastoAll[1:t_]
-  migra    <- migra[1:t_]
-  vecinos  <- vecinos[1:t_]
-  emigra   <- emigra[1:t_]
-  inmigra  <- inmigra[1:t_]
+  if (saveRecord) {
+    record   <- record[1:t_]
+    pastoAll <- pastoAll[1:t_]
+    migra    <- migra[1:t_]
+    vecinos  <- vecinos[1:t_]
+    emigra   <- emigra[1:t_]
+    inmigra  <- inmigra[1:t_]
+  }
   llama    <- match.call()
   frm      <- formals(ibm)
   parms    <- lapply(names(frm), get, envir=sys.parent(0))
@@ -406,20 +412,23 @@ ibm <- function(
     parms$lands <- NULL
 
   if (!is.null(import)) {
+  # ATENCIÓN: AÚN NO SE IMPLEMENÓ EL IMPORTAR (C/ SAVERECORD)
     llama <- c(llama, import$call)
     names(llama) <- paste('call', length(llama):1, sep='.')
     parms$import <- import$call
     if (is.null(import$lands))
       parms$lands <- NULL
   }
-  
-  totalMigra <- sapply(migra, sum)
-  ijMigra <- totalMigra / (npatchFocus * (npatchFocus - 1))
-  #-->ijMigra: cantidad de migrantes per i ---> j (pares de parches)
-  popMigra <- totalMigra / pop
-  sumMig <- function(mig) sum(unlist(mig))
-  totalEmigra <- sapply(emigra, function(x) sum(unlist(x)))
-  totalInmigra <- sapply(inmigra, function(x) sum(unlist(x)))
+
+  if (saveRecord) {
+    totalMigra <- sapply(migra, sum)
+    ijMigra <- totalMigra / (npatchFocus * (npatchFocus - 1))
+    #-->ijMigra: cantidad de migrantes per i ---> j (pares de parches)
+    popMigra <- totalMigra / pop
+    sumMig <- function(mig) sum(unlist(mig))
+    totalEmigra <- sapply(emigra, function(x) sum(unlist(x)))
+    totalInmigra <- sapply(inmigra, function(x) sum(unlist(x)))
+  }
 
   # LISTA DE SALIDA
   out <- list(
@@ -427,32 +436,45 @@ ibm <- function(
     births=births,
     deaths=deaths,
     call=llama,
-    emigra=emigra,
     extinction=extinction,
-    ijMigra=ijMigra,
     indStats=indStats,
-    inmigra=inmigra,
     lands=lands,
-    migra=migra,
+    lifeSpan=lifeSpan,
+    m=m,
     optPatch=optPatch,
-    pastoAll=pastoAll,
     parms=parms,
+    pasto=pasto,
     pointsFun=pointsFun,
     pop=pop,
-    popMigra=popMigra,
-    record=record,
+    reser=reser,
     tiempo=proc.time()[3] - ptm + extra_t,
-    totalEmigra=totalEmigra,
-    totalInmigra=totalInmigra,
-    totalMigra=totalMigra,
-    vecinos=vecinos)
+    xypos=xypos)
+
+  if (saveRecord) {
+    out$emigra <- emigra
+    out$ijMigra <- ijMigra
+    out$inmigra <- inmigra
+    out$migra <- migra
+    out$pastoAll <- pastoAll
+    out$popMigra <- popMigra
+    out$record <- record
+    out$totalEmigra <- totalEmigra
+    out$totalInmigra <- totalInmigra
+    out$totalMigra <- totalMigra
+    out$vecinos <- vecinos
+  }
+
   class(out) <- c('ibm', class(out))
 
   if (showSummary)
     print(out, stats=FALSE)
 
-  if (plotPop)
+  if (plotPop && saveRecord)
     plot(out, 'pop')
+  if (plotPop && !saveRecord) {
+    plot(pop, xlab='Iteración', ylab='Población (N)', type='o',
+         pch=20, lwd=1.5)
+  }
 
   return(out)
 }

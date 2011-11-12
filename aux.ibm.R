@@ -543,6 +543,8 @@ plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
             resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2),
             ..., lang='en') {
+  if (!x$parms$saveRecord)
+    stop('No se puede hacer el "plot" sin la opción saveRecord. Use plot(x$pop)')
 
   M         <- x$parms$M
   parches   <- x$lands
@@ -753,18 +755,20 @@ print.ibm <- function(x, stats=TRUE) {
   tiempo   <- length(x$pop)
   halfTime <- round(tiempo / 2)
   pop1     <- mean(x$pop[1:(halfTime - 1)])
-  mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
   pop2     <- mean(x$pop[halfTime:tiempo])
-  mig2     <- mean(x$totalMigra[halfTime:tiempo])
-  LF       <- x$parms$levelFocus
+  if (x$parms$saveRecord) {
+    mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
+    mig2     <- mean(x$totalMigra[halfTime:tiempo])
+  }
+  LF <- x$parms$levelFocus
 
   lands <- x$lands
   totalPatches0 <- with(lands, length(pos) ^ parms$dim_)
-  xypos <- x$record[[tiempo]][, c('x', 'y')]
+  xypos <- x$xypos
   count <- 0
-  if (length(x$record[[tiempo]]) > 0) {
+  if (length(x$xypos) > 0) {
     for (i in 1:totalPatches0) {
-      vec <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
+      vec   <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
       count <- count + (length(vec) > 0)
     }
   }
@@ -773,21 +777,26 @@ print.ibm <- function(x, stats=TRUE) {
   nVecinos  <- sapply(x$vecinos[[tiempo]], countPositives)
   nOccupied <- sum(nVecinos > 0)
   level <- x
-  cat(paste(
+  cat(
     '\nTiempo total de simulación:\t', tiempo, ' iteraciones\n',
     '\nPoblación promedio, 1er. mitad:\t', round(pop1,2),
-    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n',
-    '\nMigrantes promedio, 1er. mitad:\t', round(mig1,3),
-    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n',
-    '\nCantidad de parches 0 ocupados (%):\t', paste(count, totalPatches0, sep='/'),
-      ' (', round(100 * patch0, 2), '%)',
-    '\nCantidad de parches ', LF,' ocupados (%):\t', paste(nOccupied, nPatches, sep='/'),
-      ' (', round(100 * nOccupied / nPatches, 2), '%)',
-    sep=''))
+    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n')
+  if (x$parms$saveRecord) {
+    cat(
+      'Migrantes promedio, 1er. mitad:\t', round(mig1,3), '\n',
+      'Migrantes promedio, 2da. mitad:\t', round(mig2,3), '\n',
+      '\nCantidad de parches 0 ocupados (%):\t',
+      paste(count, totalPatches0, sep='/'),
+        ' (', round(100 * patch0, 2), '%)',
+      '\nCantidad de parches ', LF,' ocupados (%):\t',
+      paste(nOccupied, nPatches, sep='/'),
+        ' (', round(100 * nOccupied / nPatches, 2), '%)',
+      sep='')
+  }
 
-  grass    <- x$pastoAll[[tiempo]]
+  grass    <- x$pasto[tiempo]
   yield    <- x$parms$yield
-  perYield <- 100 * (1 - mean(grass) / yield )
+  perYield <- 100 * (1 - mean(grass) / yield)
   
   cat(paste(
     '\nRecursos promedio por parche (nivel 0):\t', round(mean(grass), 1),
@@ -864,8 +873,10 @@ register <- function() {
 
     #  0.3.b Vectores
     pasto         <- rep.int(yield, nrow(xypasto))
-    pastoAll      <- vector('list', length=tfinal)
-    pastoAll[[1]] <- pasto
+    if (saveRecord) {
+      pastoAll      <- vector('list', length=tfinal)
+      pastoAll[[1]] <- pasto
+    }
     pop           <- numeric(tfinal)
     births        <- numeric(tfinal)
     deaths        <- numeric(tfinal)
@@ -875,32 +886,34 @@ register <- function() {
     extra_t       <- 0
     t_ <- 2; pop[1] <- N
   
-    #  0.3.c Tabla
-    record      <- vector('list', tfinal)
-    record[[1]] <- data.frame(foodAcum=foodAcum,
-                name=nombres, m=m, #pos=pos,
-                reser=reser, lifeSpan=lifeSpan,
-                x=xypos[,1],
-                y=xypos[,2])
-  
-    # 0.3.d Migración
-    migra   <- vector('list', tfinal)
-    migra_t <- matrix(0, npatchFocus, npatchFocus) -> migra[[1]]
-    #-->migra_t[i,j] = migración de j --> i
-    emigra    <- vector('list', tfinal)
-    emigra_t  <- vector('list', npatchFocus)
-    inmigra   <- vector('list', tfinal)
-    inmigra_t <- vector('list', npatchFocus)
-    vecinos   <- vector('list', tfinal)
-    vec.t <- vector('list', npatchFocus)
-    for (v in 1:npatchFocus) {
-      emigra_t[[v]]  <- 0
-      inmigra_t[[v]] <- 0
-      vec.t[[v]] <- nombres[inpip(xypos,
-                                      lands$areas[[levelFocus + 1]][[v]],
-                                      bound=TRUE)]
+    if (saveRecord) {
+      #  0.3.c Tabla
+      record      <- vector('list', tfinal)
+      record[[1]] <- data.frame(foodAcum=foodAcum,
+                  name=nombres, m=m, #pos=pos,
+                  reser=reser, lifeSpan=lifeSpan,
+                  x=xypos[,1],
+                  y=xypos[,2])
+    
+      # 0.3.d Migración
+      migra   <- vector('list', tfinal)
+      migra_t <- matrix(0, npatchFocus, npatchFocus) -> migra[[1]]
+      #-->migra_t[i,j] = migración de j --> i
+      emigra    <- vector('list', tfinal)
+      emigra_t  <- vector('list', npatchFocus)
+      inmigra   <- vector('list', tfinal)
+      inmigra_t <- vector('list', npatchFocus)
+      vecinos   <- vector('list', tfinal)
+      vec.t <- vector('list', npatchFocus)
+      for (v in 1:npatchFocus) {
+        emigra_t[[v]]  <- 0
+        inmigra_t[[v]] <- 0
+        vec.t[[v]] <- nombres[inpip(xypos,
+                                        lands$areas[[levelFocus + 1]][[v]],
+                                        bound=TRUE)]
+      }
+      vecinos[[1]] <- vec.t
     }
-    vecinos[[1]] <- vec.t
   })
 }
 ####################################
@@ -972,58 +985,3 @@ tasa <- function(x) {
 }
 ####################################
 ####################################
-# Experimental...
-ibmplot <- function(x, landsTitle='A Simple Plot', popTitle='Dinámica Poblacional',
-            xlab='Iteración (t)', ylab='Abundancia (N[t])', ini=1, fin=2) {
-  # Ejemplo:
-  # x <- ibm(tfinal=100)
-  # for (i in 1:100) { grid.newpage(); ibmplot(x, fin=i) }
-  coordsAll <- x$lands$coordsAll
-  x_ <- coordsAll$x
-  y_ <- coordsAll$y
-  landPlot  <- viewport(name="landscape", x=unit(5, "lines"), y=unit(4, "lines"),
-    width=unit(0.5, "npc") - unit(7, "lines"), height=unit(1, "npc") - unit(7, "lines"),
-    just=c("left", "bottom"), xscale=range(x_) + c(-0.05,  0.05) * diff(range(x_)),
-    yscale=range(y_) + c(-0.05, 0.05) * diff(range(y_)))
-  pushViewport(landPlot)
-  grid.points(x_, y_, pch=19)#, col='#409951')
-  rec <- x$record[[fin]]
-  grid.points(rec$x, rec$y, pch='X')#, col='#409951')
-  grid.rect()
-  grid.xaxis()
-  grid.yaxis()
-  grid.text('<-- x -->', y=unit(-2.5, "lines"),
-    gp=gpar(fontsize=13))
-  grid.text('<-- y -->', x=unit(-3.5, "lines"),
-    gp=gpar(fontsize=13), rot=90)
-  grid.text(landsTitle, y=unit(1, "npc") + unit(1,
-    "lines"), gp=gpar(fontsize=15))
-  upViewport()
-  
-  tf <- x$parms$tfinal
-  times <- ini:fin
-  pop <- x$pop
-  popPlot <- viewport(name="population", x=unit(5, "lines") + unit(0.5, "npc"), y=unit(4, "lines"),
-    width=unit(0.5, "npc") - unit(7, "lines"), height=unit(1, "npc") - unit(7, "lines"),
-#      layout=grid.layout(ncol=2), height=unit(1, "npc") - unit(7, "lines"),
-    just=c("left", "bottom"), xscale=c(1, tf) + c(-0.05,  0.05) * (tf - 1),
-    yscale=range(pop) + c(-0.05, 0.05) * diff(range(pop)))
-  pushViewport(popPlot)
-  grid.lines(times, pop[times])#, col='#409951')
-  grid.points(times, pop[times], pch=20)
-  grid.rect()
-  grid.xaxis()
-  grid.yaxis()
-  grid.text(xlab, y=unit(-2.5, "lines"),
-    gp=gpar(fontsize=13))
-  grid.text(ylab, x=unit(-3.5, "lines"),
-    gp=gpar(fontsize=13), rot=90)
-  grid.text(popTitle, y=unit(1, "npc") + unit(1,
-    "lines"), gp=gpar(fontsize=15))
-  upViewport()
-}
-code <- function(){
-  plot(plotGrass[times], type='o', pch=19, lwd=1.25, col='#409951',
-    ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
-  points(x$pop[times], lwd=3, col=col1, type='o', pch=20)
-}
