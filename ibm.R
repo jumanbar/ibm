@@ -114,7 +114,6 @@ ibm <- function(
 
   } else {
     # Protocolo de importación de simulaciones anteriores
-    # NO IMPLEMENTA LA IMPORTACIÓN AÚN!
     bag <- importer(import, tfinal)
     for (i in 1:length(bag))
       assign(names(bag)[[i]], bag[[i]])
@@ -437,10 +436,12 @@ ibm <- function(
     deaths=deaths,
     call=llama,
     extinction=extinction,
+    foodAcum=foodAcum,
     indStats=indStats,
     lands=lands,
     lifeSpan=lifeSpan,
     m=m,
+    nombres=nombres,
     optPatch=optPatch,
     parms=parms,
     pasto=pasto,

@@ -117,7 +117,7 @@ getNormSd <- function(x, init=1) {
 getStats <- function(x, show=TRUE) {
 # x:
 #  1. Objeto ibm
-#  2. Objeto ibmStats
+#  2. Objeto stats
 #  3. Vector con nombres, indicando los valores de los distintos parámetros,
 #     por ejemplo 'x=c(M=12)'
 # salida:
@@ -126,7 +126,7 @@ getStats <- function(x, show=TRUE) {
 #  defectos de los argumentos de la función ibm.
   if ('ibm' %in% class(x))
     iStats <- x$indStats
-  if ('ibmStats' %in% class(x))
+  if ('stats' %in% class(x))
     iStats <- x
   if (is.vector(x)) {
     parms <- formals(ibm)
@@ -211,35 +211,36 @@ importer <- function(im, tfinal) {
     lands   <- lands
     N       <- pop[t_]
 
-    rec        <- record[[t_]]
-    foodAcum   <- rec$foodAcum
-    lifeSpan   <- rec$lifeSpan
-    nombres    <- rec$name
-    reser      <- rec$reser
+    if (saveRecord) {
+      rec        <- record[[t_]]
+      foodAcum   <- rec$foodAcum
+      lifeSpan   <- rec$lifeSpan
+      nombres    <- rec$name
+      reser      <- rec$reser
+    }
     lastname   <- nombres[N]
-    m          <- rec$m
-    xypos      <- with(rec, cbind(x, y))
-    dim(xypos) <- c(N, 2)
 
-    pastoAll <- c(pastoAll, vector('list', tplus))
-    pasto <- pastoAll[[t_]]
     pop <- c(pop, numeric(tplus))
     births <- c(births, numeric(tplus))
     deaths <- c(deaths, numeric(tplus))
-    ijMigra <- c(ijMigra, numeric(tplus))
-    popMigra <- c(popMigra, numeric(tplus))
-    totalMigra <- c(totalMigra, numeric(tplus))
-    totalEmigra <- c(totalEmigra, numeric(tplus))
-    totalInmigra <- c(totalInmigra, numeric(tplus))
-    record <- c(record, vector('list', tplus))
-    migra <- c(migra, vector('list', tplus))
-    migra_t <- migra[[t_]]
-    emigra <- c(emigra, vector('list', tplus))
-    emigra_t <- emigra[[t_]]
-    inmigra <- c(inmigra, vector('list', tplus))
-    inmigra_t <- inmigra[[t_]]
-    vecinos <- c(vecinos, vector('list', tplus))
-    vec.t <- vecinos[[t_]]
+    if (saveRecord) {
+      pastoAll <- c(pastoAll, vector('list', tplus))
+      pasto <- pastoAll[[t_]]
+      ijMigra <- c(ijMigra, numeric(tplus))
+      popMigra <- c(popMigra, numeric(tplus))
+      totalMigra <- c(totalMigra, numeric(tplus))
+      totalEmigra <- c(totalEmigra, numeric(tplus))
+      totalInmigra <- c(totalInmigra, numeric(tplus))
+      record <- c(record, vector('list', tplus))
+      migra <- c(migra, vector('list', tplus))
+      migra_t <- migra[[t_]]
+      emigra <- c(emigra, vector('list', tplus))
+      emigra_t <- emigra[[t_]]
+      inmigra <- c(inmigra, vector('list', tplus))
+      inmigra_t <- inmigra[[t_]]
+      vecinos <- c(vecinos, vector('list', tplus))
+      vec.t <- vecinos[[t_]]
+    }
     t_ <- t_ + 1
   })
   return(out)
@@ -744,6 +745,8 @@ powerPts <- function(x, ptExp) {
 ####################################
 ####################################
 print.ibm <- function(x, stats=TRUE) {
+  require(splancs)
+  require(ellipse)
   if (stats) {
     print(x$indStats)
     print(x$lands)
@@ -810,15 +813,15 @@ print.ibm <- function(x, stats=TRUE) {
 }
 ####################################
 ####################################
-print.ibmStats <- function(x) {
-# x es un objeto de la clase ibmStats
+print.stats <- function(x) {
+# x es un objeto de la clase stats
     with(x, {
     cat(paste('Atributos individuales:\n\tMMD = ', round(MMD, 3),
       ' Km/day\tICL = ', round(ICL, 4), ' KJ/Km\tMMC = ', round(MMC, 4),
       ' KJ/day\n\tBMR = ', round(BMR,3), ' KJ/day\tMEI = ', round(MEI, 3),
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
-      ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 5),
+      ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 3),
       ' KJ\t\tALS = ', round(ALS), ' days\n',
       sep=''))
     cat(paste('\n\tTAMAÑO: ', round(M, 3), ' Kg\n'))
@@ -952,7 +955,7 @@ stats <- function() {
     list(ALS=ALS, MMD=MMD, ICL=ICL, MMC=MMC, M=M,  M0=M0, MEI=MEI,
          MPD=MPD, PSI=PSI, BMR=BMR, REE=REE, TMC=TMC, TRS=TRS)
   })
-  class(out) <- 'ibmStats'
+  class(out) <- 'stats'
   return(out)
 }
 ####################################

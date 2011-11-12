@@ -4,11 +4,13 @@ ex <- seq(-2, 1, len=24)
 Ms <- 10 ^ ex
 
 run <- ibm(landsDist_ = 4, levelSeeds = 1,
-           mpd0 = 6, sizeMode = "random",
-           trs0 = 0.1, yield = 2000, tfinal=20000,
-           M = Ms[23])
+           mpd0 = 6, sizeMode = "random", als0=5e6,
+           trs0 = 0.1, yield = 2000, tfinal=8000,
+           M = Ms[23], saveRecord=FALSE)
 
-save(run, file='../saves/corrida-M=7.4.RData')
+save(run, file='../saves/corrida-M=5.5.RData')
 
-# ibm(landsDist_ = 4, levelSeeds = 1, M = 10, mpd0 = 6, sizeMode = "random", 
-#     tfinal = 500, trs0 = 0.1, yield = 2000)
+#  [1]  0.01000000  0.01350314  0.01823348  0.02462092  0.03324598  0.04489251
+#  [7]  0.06061899  0.08185467  0.11052951  0.14924955  0.20153377  0.27213388
+# [13]  0.36746619  0.49619476  0.67001875  0.90473572  1.22167735  1.64964807
+# [19]  2.22754295  3.00788252  4.06158599  5.48441658  7.40568469 10.00000000
