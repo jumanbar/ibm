@@ -801,12 +801,12 @@ print.ibm <- function(x, stats=TRUE) {
   yield    <- x$parms$yield
   perYield <- 100 * (1 - mean(grass) / yield)
   
-  cat(paste(
+  cat(
     '\nRecursos promedio por parche (nivel 0):\t', round(mean(grass), 1),
     '\nProm. de recursos consumidos:\t\t', round(perYield, 1), '%\n',
     '\nTIEMPO TOTAL DE SIMULACIÓN:\t', round(x$tiempo, 1),
     's.\n\n',
-    sep=''))
+    sep='')
 
   if (x$extinction)
     cat('>>> The population collapsed!\n')
@@ -816,15 +816,15 @@ print.ibm <- function(x, stats=TRUE) {
 print.stats <- function(x) {
 # x es un objeto de la clase stats
     with(x, {
-    cat(paste('Atributos individuales:\n\tMMD = ', round(MMD, 3),
+    cat('Atributos individuales:\n\tMMD = ', round(MMD, 3),
       ' Km/day\tICL = ', round(ICL, 4), ' KJ/Km\tMMC = ', round(MMC, 4),
       ' KJ/day\n\tBMR = ', round(BMR,3), ' KJ/day\tMEI = ', round(MEI, 3),
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
       ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 3),
       ' KJ\t\tALS = ', round(ALS), ' days\n',
-      sep=''))
-    cat(paste('\n\tTAMAÑO: ', round(M, 3), ' Kg\n'))
+      sep='')
+    cat('\n\tTAMAÑO: ', round(M, 3), 'Kg\n')
     })
 }
 ####################################
@@ -833,12 +833,12 @@ print.lands <- function(x) {
 
   with(x$parms, {
     npatch <- (n_ ^ dim_) ^ lmax_
-    cat(paste('\nPropiedades del paisaje (', type, '):\n',
+    cat('\nPropiedades del paisaje (', type, '):\n',
     '\tDIM   = ', dim_, '\tDIST    = ', round(dist_, 2), ' Km\n',
     '\tRDIST = ', round(rdist_, 2), '\tNIVELES = ', lmax_, '\n',
     '\tNo. PARCHES (U. BÁSICA) = ', n_, '\n',
     '\tNo. PARCHES (TOTAL)     = ', npatch, '\n',
-    sep=''))
+    sep='')
   })
 }
 ####################################
@@ -931,7 +931,7 @@ seeStats <- function(x)
 ####################################
 ####################################
 seeTime <- function(t_, pop)
-    cat(paste('| ', t_, ' N=', pop[t_], ' ', sep=''))
+    cat('| ', t_, ' N=', pop[t_], ' ', sep='')
 ####################################
 ####################################
 stats <- function() {

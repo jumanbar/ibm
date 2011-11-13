@@ -130,7 +130,7 @@ ibm <- function(
   # COMIENZAN LAS ITERACIONES
   # Seguimiento de las iteraciones
   if (showTime) {
-    cat(paste('\n Tiempo (de ', tfinal, '),\n>>', sep=''))
+    cat('\n Tiempo (de ', tfinal, '),\n>>', sep='')
     seeTime(t_ - 1, pop)
   }
 
