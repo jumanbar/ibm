@@ -5,7 +5,7 @@ Ms <- 10 ^ ex
 
 run <- ibm(landsDist_ = 4, levelSeeds = 0,
            mpd0 = 6, sizeMode = "random", als0=5e6,
-           trs0 = 0.1, yield = 2000, tfinal=1300,
+           trs0 = 0.1, yield = 2000, tfinal=800,
            M = Ms[1], saveRecord=FALSE)
 
 save(run, file='../saves/corrida-M=0.01.RData')
