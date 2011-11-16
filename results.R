@@ -1,12 +1,20 @@
-path <- file.path('/home/juan/projects/maestria/saves')
+
+path <- file.path('/home/juan/Dropbox/saves')
 arch <- dir(path, pattern='corrida')
 arch <- file.path(path, arch)
-pops <- vector('list', length(arch))
-M    <- numeric(length(arch))
-for (i in 1:length(arch)) {
+na   <- length(arch)
+pops <- vector('list', )
+M    <- numeric(na)
+k    <- numeric(na)
+for (i in 1:na) {
   load(arch[i])
-  pops[[i]] <- run$pop
-  M[i]      <- run$parms$M
+  p <- run$pop
+  l <- length(p)
+  pops[[i]] <- p
+  k[i] <- mean(p[round(l / 2):l])
+  M[i] <- run$parms$M
 }
 
-save(pops, M, file='pops-n-M.RData')
+names(pops) <- paste('M', round(M, 2), sep='')
+
+save(pops, M, k, file=file.path(path, 'pops-n-M.RData'))

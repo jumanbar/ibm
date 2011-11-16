@@ -540,7 +540,7 @@ mvar <- function(m_) {
 }
 ####################################
 ####################################
-plot.ibm <- function(x, kind='animation', outdir='default', nmax=500,
+plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
             resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2),
             ..., lang='en') {
