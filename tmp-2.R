@@ -5,18 +5,20 @@ ncor <- 24
 pares   <- seq(2, ncor, by=2)
 impares <- seq(1, ncor, by=2)
 
-ex <- seq(-1.2, 1.2, len=ncor)[]
+# -1.30103000  0.07918125
+ex <- seq(-1.3, 0.08, len=ncor)
 M  <- 10 ^ ex
 tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
 
 for (i in 1:length(M)) {
   cat('Va por el', i, 'de', length(M), '\n')
-  run <- ibm(landsDist_ = 4, levelSeeds = 0,
+  run <- ibm(landsDist_ = 4, landsRdist_ = 5, levelSeeds = 0,
              mpd0 = 6, sizeMode = "random", als0=5e8,
              trs0 = 0.1, yield = 2000, tfinal=tf(i),
              M = M[i], saveRecord=FALSE, verboso=FALSE)
-  nombre <- paste('corrida-M=', round(M[i], 2), Sys.Date(), '.RData', sep='')
-  save(run, file=file.path(path, nombre)
+  nombre <- paste('corrida-M=', round(M[i], 2), '-', Sys.Date(),
+                  '.RData', sep='')
+  save(run, file=file.path(path, nombre))
 }
 
 #  [1]  0.01000000  0.01350314  0.01823348  0.02462092  0.03324598  0.04489251
