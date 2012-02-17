@@ -37,6 +37,17 @@ bholtDyn2 <- function(No=1, Ro=2, M=1, tfinal=20, ...) {
 }
 ####################################
 ####################################
+calcLims <- function(pos, areaFactor=1.3) {
+  x.lims <- y.lims  <- range(pos)
+  ancho <- diff(x.lims)
+  y.lims[2] <- y.lims[1] + ancho * (1 + areaFactor) / 2
+  y.lims[1] <- y.lims[1] + ancho * (1 - areaFactor) / 2
+  x.lims[2] <- x.lims[1] + ancho * (1 + areaFactor) / 2
+  x.lims[1] <- x.lims[1] + ancho * (1 - areaFactor) / 2
+  return(list(x.lims=x.lims, y.lims=y.lims))
+}
+####################################
+####################################
 # chFun
 chooseFromAll <- function(puntaje, critQuant=0.9) {
   sample(length(puntaje), 1, prob=puntaje)
@@ -540,15 +551,47 @@ mvar <- function(m_) {
 }
 ####################################
 ####################################
+plotFoto <- function(noiseFactor=1/7, areaFactor=1.3, ) {
+## No está lista aún...
+  with(parent.frame(), {
+    parop  <- par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
+    lims   <- calcLims(pos, areaFactor)
+    x.lims <- lims[[1]]
+    y.lims <- lims[[2]]
+    dmin   <- ifelse(length(pos) > 1, min(diff(pos)), 1)
+    plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
+	 scex.lab=1.7, cex.axis=1.7)
+    rec <- record[[t_]]
+    noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+    noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+    tamano <- (rec$m / M + 1) * resFactor
+    points(rec$x + noise1, rec$y + noise2,
+           pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
+    points(rec$x + noise1, rec$y + noise2,
+           pch=21, cex=tamano, col=1)
+#       text(rec$x + noise1, rec$y + noise2, labels=rec$name,
+# 	   cex=tamano * .2, col='white')
+    legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
+    
+    plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
+         xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
+         xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
+    points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
+    par(parop)
+  })
+}
+####################################
+####################################
 plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
             resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2),
             ..., lang='en') {
-  if (!x$parms$saveRecord)
-    stop('No se puede hacer el "plot" sin la opción saveRecord. Use plot(x$pop)')
+  ## NOTA!!: DEFINITIVAMENTE ABANDONADO EL USO DEL PAQUETE "animation"
+  if (!x$parms$saveRecord && kind != 'pop')
+    stop('No se puede hacer el "plot" sin la opción saveRecord. Use kind="pop"')
 
   M         <- x$parms$M
-  parches   <- x$lands
+  lands     <- x$lands
   pos       <- x$lands$pos
   coordsAll <- x$lands$coordsAll
   record    <- x$record
@@ -567,67 +610,20 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   if (fin > tfinal)
     stop('Argument "to" is too great!')
   
-  x.lims <- y.lims  <- range(pos)
-  ancho <- diff(x.lims)
-  y.lims[2] <- y.lims[1] + ancho * (1 + areaFactor) / 2
-  y.lims[1] <- y.lims[1] + ancho * (1 - areaFactor) / 2
-  x.lims[2] <- x.lims[1] + ancho * (1 + areaFactor) / 2
-  x.lims[1] <- x.lims[1] + ancho * (1 - areaFactor) / 2
-
+  lims <- calcLims(pos, areaFactor)
+  x.lims <- lims[[1]]
+  y.lims <- lims[[2]]
 
   seriePasto <- sapply(pasto, sum)
   plotGrass  <- max(x$pop) * seriePasto / (x$parms$yield * nrow(x$lands$coordsAll))
 
-   if (outdir == 'default') out <- 'animation'
-  else {
+  if (outdir == 'default') {
+    out <- 'animation'
+  } else {
     out <- outdir
     system(paste('mkdir', out))
   }
   
-  if (kind == 'animation' || kind == 1) {
-
-    require(animation)
-    height <- 1.3 * 480
-    width  <- 2 * (1.3) * 480
-    oopt <- ani.options(interval=0.4, nmax=100, outdir=out, ani.height=height, ani.width=width)
-
-# ~    if (tfinal > 100) {
-# ~      div <- round(tfinal / 100)
-# ~      times <- (1:tfinal)[(1:tfinal %% div) == 0]
-# ~    } else {
-
-# ~    }
-
-    ani.start()
-      for (i in times) {
-        plot(1,1,type='n')
-      }
-    ani.stop()
-#      ani.start()
-    k <- 1
-    for (i in times) {
-      png(filename=paste('animation/images/', k, '.png', sep=''),
-        width=width, height=height, bg = "white",  res = 100)
-      par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))        
-      plot(parches, yield=yield, pasto=pasto[[i]], ylim=y.lims, xlim=x.lims, cex.lab=1.7, cex.axis=1.7)
-      rec <- record[[i]]
-      noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-      noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-      points(rec$x + noise1, rec$y + noise2,
-          pch='x', cex=resFactor * (rec$m / M),
-          col=rainbow(maxname)[rec$name])
-      legend('topleft', legend=x$pop[i], cex=1.5, bty='n')
-      
-      plot(ini:i, plotGrass[ini:i], type='o', pch=19, lwd=1.25, col='#409951', xlim=c(ini, fin),
-        ylim=c(0, max(x$pop) * uplim), ylab='Población (N)', xlab='Iteración', , cex.lab=1.7, cex.axis=1.7)
-      points(ini:i, x$pop[ini:i], lwd=3, col=col1, type='o', pch=20)
-      dev.off()
-#          dev2bitmap(paste('animation/images/', k, '.png', sep=''), width=width, height=height, units='px')
-      k <- k + 1
-    }
-#      ani.stop()
-  }
-
   if (kind == 'pop' || kind == 2) {
     if (x$parms$grassMode != 'fixed') {
       plot(plotGrass[times], type='o', pch=19, lwd=1.25, col='#409951',
@@ -641,20 +637,29 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   }
 
   if (kind == 'foto' || kind == 3) {
-      par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
-      plot(parches, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims, cex.lab=1.7, cex.axis=1.7)
+      parop <- par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
+      plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
+           cex.lab=1.7, cex.axis=1.7)
       rec <- record[[t_]]
       noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
       noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+      tamano <- (rec$m / M + 1) * resFactor
       points(rec$x + noise1, rec$y + noise2,
-          pch='x', cex=resFactor * (rec$m / M),
-          col=rainbow(maxname)[rec$name])
+             pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
+      points(rec$x + noise1, rec$y + noise2,
+             pch=21, cex=tamano, col=1)
+#       text(rec$x + noise1, rec$y + noise2, labels=rec$name,
+# 	   cex=tamano * .2, col='white')
+#     text(x, y = NULL, labels = seq_along(x), adj = NULL,
+#          pos = NULL, offset = 0.5, vfont = NULL,
+#          cex = 1, col = NULL, font = NULL, ...)
       legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
       
-      plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951', xlim=c(1, t_),
-        ylim=c(0, max(x$pop) * uplim), ylab='Población (N)', xlab='Iteración', , cex.lab=1.7, cex.axis=1.7)
+      plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
+           xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
+	   xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
       points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
-      par(mfcol=c(1,1))
+      par(parop)
   }
   if (kind %in% c('gvis', 4)) {
     Motion <- plotGvisMotionChart(x, from=ini, to=fin, show=FALSE)
@@ -677,14 +682,14 @@ plot.lands <- function(x, yield=1, pasto=rep(yield, nrow(x$coordsAll)),
     cex.grass <- cex.grass * (pasto / yield)
     plot(coordsAll, xlab='x', ylab='y',
          cex=cex.grass, pch=pch.grass,
-         col='#409951', ...)
+         col='#BAFFC7', ...)
     rm(cex.grass)
   })
 }
 ####################################
 ####################################
 plotGvisLineChart <- function(x, from=1, to=length(x$pop), dates=FALSE,
-                              options=list(width=800), show=TRUE) {
+                              op=list(width=800), show=TRUE) {
   tabla <- with(x,
                 data.frame(Population=pop,
                            Migration=totalMigra,
@@ -696,7 +701,7 @@ plotGvisLineChart <- function(x, from=1, to=length(x$pop), dates=FALSE,
   gvisObj <- gvisLineChart(tabla[from:to, ],
                            xvar="Iteracion",
                            yvar=names(tabla)[-5],
-                           options=options)
+                           options=op)
   if (show)
     plot(gvisObj)
   out <- list(gvis=gvisObj, tabla=tabla)
@@ -706,7 +711,7 @@ plotGvisLineChart <- function(x, from=1, to=length(x$pop), dates=FALSE,
 ####################################
 ####################################
 plotGvisMotionChart <- function(x, from=1, to=length(x$pop),
-                                options=list(showChartButtons=FALSE),
+                                op=list(showChartButtons=TRUE),
                                 show=TRUE) {
 # x: objeto ibm
   require(googleVis)
@@ -715,17 +720,18 @@ plotGvisMotionChart <- function(x, from=1, to=length(x$pop),
   tiempo <- rep.int(1:length(total), total)
   fecha  <- as.Date(tiempo, origin='0/1/1')
   tabla  <- data.frame(time=fecha, foodAcum=0, name=0, m=0, reser=0, x=0, y=0)
-  for(i in 1:length(total))
-    tabla[tiempo == i, -1] <- rec[[i]]
-
-  stateSettings <- '{"nonSelectedAlpha":0.4,"playDuration":15000,"duration":{"multiplier":1,"timeUnit":"D"},"xZoomedIn":false,"xAxisOption":"5","uniColorForNonSelected":false,"xZoomedDataMin":0,"iconKeySettings":[],"colorOption":"_UNIQUE_COLOR","yZoomedIn":false,"time":"1900-01-02","showTrails":true,"orderedByX":false,"xZoomedDataMax":12,"yZoomedDataMin":0,"iconType":"BUBBLE","xLambda":1,"dimensions":{"iconDimensions":["dim0"]},"orderedByY":false,"yLambda":1,"yZoomedDataMax":11.8780815,"sizeOption":"3","yAxisOption":"6"}'
+  for(i in 1:length(total)) {
+    cols <- names(rec[[i]]) != 'lifeSpan'
+    tabla[tiempo == i, -1] <- rec[[i]][cols]
+  }
+#   stateSettings <- '{"nonSelectedAlpha":0.4,"playDuration":15000,"duration":{"multiplier":1,"timeUnit":"D"},"xZoomedIn":false,"xAxisOption":"5","uniColorForNonSelected":false,"xZoomedDataMin":0,"iconKeySettings":[],"colorOption":"_UNIQUE_COLOR","yZoomedIn":false,"time":"1900-01-02","showTrails":true,"orderedByX":false,"xZoomedDataMax":12,"yZoomedDataMin":0,"iconType":"BUBBLE","xLambda":1,"dimensions":{"iconDimensions":["dim0"]},"orderedByY":false,"yLambda":1,"yZoomedDataMax":11.8780815,"sizeOption":"3","yAxisOption":"6"}'
   # Note: this are the settings I would choose for a default view, but it
   # doesn't seem to work properly... hope it gets right in next versions. For this reason the column order is changed:
 
-  tabla <- tabla[,c(6, 7, 5, 4, 2, 1, 3)]
+  tabla <- tabla[,c('name', 'time', 'x', 'y', 'reser', 'm', 'foodAcum')]
 
   gvisObj <- gvisMotionChart(tabla, timevar="time", idvar="name",
-                             options=options)
+                             options=op)
   if (show)
     plot(gvisObj)
   out <- list(gvis=gvisObj, tabla=tabla)
@@ -822,7 +828,7 @@ print.stats <- function(x) {
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
       ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 3),
-      ' KJ\t\tALS = ', round(ALS), ' days\n',
+      ' KJ\tALS = ', round(ALS), ' days\n',
       sep='')
     cat('\n\tTAMAÑO: ', round(M, 3), 'Kg\n')
     })

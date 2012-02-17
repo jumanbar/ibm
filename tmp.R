@@ -1,14 +1,19 @@
 source('ibm.R')
+path <- file.path('/home/juan/Dropbox/saves')
+ncor <- 24
+i <- 24
 
-ex <- seq(-2, 1, len=24)
-Ms <- 10 ^ ex
+ex <- seq(-1.3, 0.08, len=ncor)
+M  <- 10 ^ ex
+tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
 
-run <- ibm(landsDist_ = 4, levelSeeds = 0,
-           mpd0 = 6, sizeMode = "random", als0=5e6,
-           trs0 = 0.1, yield = 2000, tfinal=800,
-           M = Ms[1], saveRecord=FALSE)
-
-save(run, file='../saves/corrida-M=0.01.RData')
+run <- ibm(landsDist_=4, landsRdist_=5, levelSeeds=0,
+           mpd0=6, sizeMode="random", als0=5e8,
+           trs0=0.1, yield=700, tfinal=tf(i),
+           M=M[i], saveRecord=TRUE, verboso=TRUE)
+  nombre <- paste('prueba-M=', round(M[i], 2), '-', Sys.Date(),
+                  '.RData', sep='')
+  save(run, file=file.path(path, nombre))
 
 #  [1]  0.01000000  0.01350314  0.01823348  0.02462092  0.03324598  0.04489251
 #  [7]  0.06061899  0.08185467  0.11052951  0.14924955  0.20153377  0.27213388
