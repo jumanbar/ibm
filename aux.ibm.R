@@ -70,6 +70,9 @@ chooseQuant <- function(puntaje, critQuant=0.9) {
   }
   out
 }
+chooseRandom <- function(puntaje, critQuant=0.9) {
+  sample(length(puntaje), 1)
+}
 ####################################
 ####################################
 distancias <- function(xyInd, xyParches) {
@@ -169,7 +172,7 @@ grassGrow <- function() {
   with(parent.frame(), {
     switch(grassMode,
       fixed={
-        # Los parches con poco pasto (pero > 0), crecen con dinámica bholt.
+        # Los parches se recuperan por completo al finalizar el turno.
         pasto[pasto < yield] <- yield
       },
       semiFixed={
@@ -183,7 +186,7 @@ grassGrow <- function() {
       },
       bholt={
         # Los pastos crecen con una función logística.
-        pasto[pasto < tol] <- 1
+        pasto[pasto < tol] <- yield * 0.02
         pasto <- bholt(pasto, Ro=pastoRo, K=yield)
       },
       randSprout={
@@ -265,6 +268,7 @@ indivSeed <- function() {
     # Repartija aleatoria de individuos en los parches nivel 0
       N       <- N_0
       nombres <- 1:N
+      hasrep  <- numeric(N) > 100 # has reproduced previously?
       pos     <- sample(nrow(xypasto), N, replace=TRUE)
       xypos   <- xypasto[pos,]
       if (length(pos) == 1) {
@@ -276,6 +280,7 @@ indivSeed <- function() {
       npatch  <- length(lands$areas[[levelSeeds + 1]])
       N       <- npatch
       nombres <- 1:N
+      hasrep  <- numeric(N) > 100
       if (levelSeeds %in% c(0, 'all')) {
       # Un individuo por parche de nivel 0
         pos <- 1:N
@@ -300,6 +305,7 @@ indivSeed <- function() {
       more    <- N_0 - N
       N       <- N_0
       nombres <- 1:N
+      hasrep  <- numeric(0) > 100
       posMore <- sample(nrow(xypasto), more, replace=TRUE)
       xypos   <- rbind(xypos, xypasto[posMore,])
     }
@@ -551,41 +557,41 @@ mvar <- function(m_) {
 }
 ####################################
 ####################################
-plotFoto <- function(noiseFactor=1/7, areaFactor=1.3, ) {
+# plotFoto <- function(noiseFactor=1/7, areaFactor=1.3, ) {
 ## No está lista aún...
-  with(parent.frame(), {
-    parop  <- par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
-    lims   <- calcLims(pos, areaFactor)
-    x.lims <- lims[[1]]
-    y.lims <- lims[[2]]
-    dmin   <- ifelse(length(pos) > 1, min(diff(pos)), 1)
-    plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
-	 scex.lab=1.7, cex.axis=1.7)
-    rec <- record[[t_]]
-    noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-    noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-    tamano <- (rec$m / M + 1) * resFactor
-    points(rec$x + noise1, rec$y + noise2,
-           pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
-    points(rec$x + noise1, rec$y + noise2,
-           pch=21, cex=tamano, col=1)
+#   with(parent.frame(), {
+#     parop  <- par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
+#     lims   <- calcLims(pos, areaFactor)
+#     x.lims <- lims[[1]]
+#     y.lims <- lims[[2]]
+#     dmin   <- ifelse(length(pos) > 1, min(diff(pos)), 1)
+#     plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
+# 	 scex.lab=1.7, cex.axis=1.7)
+#     rec <- record[[t_]]
+#     noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+#     noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+#     tamano <- (rec$m / M + 1) * resFactor
+#     points(rec$x + noise1, rec$y + noise2,
+#            pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
+#     points(rec$x + noise1, rec$y + noise2,
+#            pch=21, cex=tamano, col=1)
 #       text(rec$x + noise1, rec$y + noise2, labels=rec$name,
 # 	   cex=tamano * .2, col='white')
-    legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
-    
-    plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
-         xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
-         xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
-    points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
-    par(parop)
-  })
-}
+#     legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
+#     
+#     plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
+#          xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
+#          xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
+#     points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
+#     par(parop)
+#   })
+# }
 ####################################
 ####################################
 plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
             type='l', col1=1, col2=8, uplim=1, areaFactor=1.3, t_=1,
             resFactor=2, noiseFactor=1/7, from, to, mfrow=c(1, 2),
-            ..., lang='en') {
+            ..., lang='en', follow=NULL) {
   ## NOTA!!: DEFINITIVAMENTE ABANDONADO EL USO DEL PAQUETE "animation"
   if (!x$parms$saveRecord && kind != 'pop')
     stop('No se puede hacer el "plot" sin la opción saveRecord. Use kind="pop"')
@@ -637,7 +643,7 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   }
 
   if (kind == 'foto' || kind == 3) {
-      parop <- par(mfrow=mfrow, mar=c(4,5.5,1.5,1.5))
+      parop <- par(mfrow=c(1, 2), mar=c(4,5.5,1.5,1.5))
       plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
            cex.lab=1.7, cex.axis=1.7)
       rec <- record[[t_]]
@@ -648,6 +654,10 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
              pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
       points(rec$x + noise1, rec$y + noise2,
              pch=21, cex=tamano, col=1)
+      if (!is.null(follow)) {
+        frec <- subset(rec, name %in% follow)
+        text(frec$x, frec$y, labels=frec$name)
+      }
 #       text(rec$x + noise1, rec$y + noise2, labels=rec$name,
 # 	   cex=tamano * .2, col='white')
 #     text(x, y = NULL, labels = seq_along(x), adj = NULL,

@@ -13,6 +13,7 @@ ibm <- function(
       E_c=2.1e-8, # KJ
       E_cr=21e-8, # KJ
       m_c=3e-12,  # Kg
+      follow=NULL,
       gompB=-5.5,
       gompC=-1.5,
       grassMode='fixed',
@@ -139,6 +140,7 @@ ibm <- function(
 #   tmp <- tempfile()
 
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
+#     if (t_ == 90) browser()
     # Atributos individuales según el tamaño corporal:
     icl <- icl0 * m ^ iclExp
     mmd <- mmd0 * m ^ mmdExp
@@ -167,19 +169,16 @@ ibm <- function(
       index <- 1:N
     }
 #     conteo <- 0
-
     for (i in index) {
       # 1. MOVIMIENTO Y ALIMENTACIÓN
-#       if (m[i] == m0) browser()
-      goRand  <- FALSE
-      donoth  <- FALSE
-      xy <- xypos[i,]
+      if (!is.null(follow) && nombres(i) == follow)
+        browser()
+      goRand   <- FALSE
+      donoth   <- FALSE
+      xy       <- xypos[i,]
       cfa      <- ellipse(0, centre=c(0,0), t=mpd[i] + 1e-2)
       cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
       visibles <- inpip(xypasto, cfa_i, bound=TRUE)
-#       if (length(visibles) == 0 && m[i] < M / 2)
-#         conteo <- conteo + 1
-      # Para que arranque el while
 
       while (restoMov[i]          > tol &&
              mei[i] - foodAcum[i] > tol &&
@@ -189,9 +188,11 @@ ibm <- function(
 
           # 1.1 Elección del próximo parche
           # Distancia y cantidad de recursos:
-          dist2visib <- distancias(xy, xypasto[visibles,])
+	  dist2visib <- distancias(xy, xypasto[visibles,])
+	  closer     <- which.min(dist2visib) 
           # Cocientes: para establecer el costo relativo por mantenimiento.
           ratioDist  <- dist2visib / mmd[i]
+# 	  print(cbind(pasto[visibles], xypasto[visibles, 'x']))
           ratioRsrc  <- pasto[visibles] / mei[i]
           ratioRsrc  <- ifelse(ratioDist > 2.5, 0, ratioRsrc)
           # NOTA: 2.5 es un valor arbitrario, podría ser cualquier otro...
@@ -209,7 +210,7 @@ ibm <- function(
                    - (tmc[i] + icl[i] * restoMov[i]) * m_c / E_cr,
                    # Balance x mov. aleatorio.
                    - tmcBiom[i] * max(restoMov[i] / mmd[i],
-                                      1 - foodAcum[i] / mei[i]))
+		                      1 - foodAcum[i] / mei[i]))
                    # Balance x quedarse en el lugar.
 
           # Incluír el costo extra por usar reservas (si PBB < 0):
@@ -221,9 +222,18 @@ ibm <- function(
             # La alternativa a PBB es tener en cuenta las reservas de cada
             # individuo a la hora de asignar puntajes.
             input <- input + trs[i]
-          puntaje <- pointsFun()
+	  puntaje <- pointsFun()
+	  if (hasrep[i] && length(closer) > 0) {
+	    puntaje    <- puntaje[-closer]
+	    visibles   <- visibles[-closer]
+	    dist2visib <- dist2visib[-closer]
+	  }
           puntaje[puntaje <= 0] <- tol
-          choiceNum <- chFun(puntaje, critQuant=chFun.quant)
+# 	  if (length(visibles) > 0)
+# 	    write.table(cbind(puntaje[1:(length(puntaje) - 2)], xypasto[visibles,1]), row.names=FALSE, col.names=FALSE, append=TRUE, file='papaya.txt')
+          aaa <- try(choiceNum <- chFun(puntaje, critQuant=chFun.quant))
+	  if (class(aaa) == 'try-error')
+	    browser()
           optPatch[i] <- visibles[choiceNum]
           dist2patch  <- dist2visib[choiceNum]
 
@@ -234,7 +244,7 @@ ibm <- function(
             if (choiceNum == length(visibles) + 1)
               goRand <- TRUE
             if (choiceNum == length(visibles) + 2)
-              donoth   <- TRUE
+              donoth <- TRUE
           }
         } else {
           # Si continua moviéndose desde el turno anterior...
@@ -243,9 +253,10 @@ ibm <- function(
 
         # 1.2.1 Movimiento al azar: ejecución
         if (goRand) {
-          xyRand      <- cfaRand[sample(60, 1), ]
-          xypos[i,]   <- xy + restoMov[i] * xyRand
+          xyRand <- cfaRand[sample(60, 1),]
+          xy     <- xy + restoMov[i] * xyRand
           restoMov[i] <- 0
+#           xypos[i,]   <- xy + restoMov[i] * xyRand
         }
         if (!(goRand || donoth)) {
           # 1.2.2 Movimiento hacia el parche
@@ -262,7 +273,7 @@ ibm <- function(
             # procesamiento de la energía 1 vez por turno.
             foodAcum[i]        <- foodAcum[i] + food
             pasto[optPatch[i]] <- pasto[optPatch[i]] - food
-            xypos[i,]          <- xypasto[optPatch[i],]
+            xy                 <- xypasto[optPatch[i],]
             restoMov[i]        <- restoMov[i] - dist2patch
             optPatch[i]        <- NA
           # Si no le da para llegar
@@ -270,13 +281,14 @@ ibm <- function(
             dirVector     <- xypasto[optPatch[i],] - xy
             dirVectorNorm <- sqrt(sum(dirVector ^ 2))
             movVector     <- dirVector * restoMov[i] / dirVectorNorm
-            xypos[i,]     <- xy + movVector
+            xy            <- xy + movVector
             restoMov[i]   <- 0
           }
         }
         cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
         visibles <- inpip(xypasto, cfa_i, bound=TRUE)
       }
+      xypos[i,]  <- xy
       obtEner[i] <- foodAcum[i]
     }
 #     cat('(', round(conteo / sum(m < M / 2), 2), ')', sep='')
@@ -304,6 +316,7 @@ ibm <- function(
     lifeSpan <- lifeSpan - 1
     survive  <- reser >= 0 & lifeSpan > 0
     alive    <- (1:N)[survive]
+    hasrep   <- (1:N) > Inf
     N        <- sum(survive)
     deaths[t_] <- sum(!survive)
     
@@ -313,10 +326,12 @@ ibm <- function(
       extraBiom <- extraBiom[alive]
       lifeSpan  <- lifeSpan[alive]
       nombres   <- nombres[alive]
+      optPatch  <- optPatch[alive]
       reser     <- reser[alive]
       m         <- m[alive]
 #        pos       <- pos[alive]
-      xypos     <- matrix(xypos[alive,], ncol=2)
+      xypos     <- xypos[survive,]
+      dim(xypos) <- c(sum(survive), 2)
       # 6. CRECIMIENTO Y REPRODUCCIÓN
       nuevos <- 0
       m <- m + (extraBiom) * E_cr / E_c
@@ -333,13 +348,15 @@ ibm <- function(
 # ~        if (any(reprod)) {
         if (any(crios > 0)) {
 # ~          crios <- floor(babyBiom[reprod] / minBio)
-          reprod <- (1:N)[crios > 0]
+	  hasrep <- crios > 0
+          reprod <- (1:N)[hasrep]
           crios  <- crios[reprod]
           babyBiom[reprod] <- babyBiom[reprod] - crios * minBio
 
           # Los nuevos individuos:
           nuevos       <- sum(crios)
           nombres      <- c(nombres, (lastname + 1):(lastname + nuevos))
+          hasrep       <- c(hasrep, numeric(nuevos) > 1)
           lastname     <- lastname + nuevos
           lifeSpan     <- c(lifeSpan, rpois(nuevos, ALS))
           m            <- c(m, rep(m0, nuevos))
@@ -347,6 +364,7 @@ ibm <- function(
           babyBiom     <- c(babyBiom, numeric(nuevos))
 # ~          print(crios)
 #            newpos       <- c(pos, rep(pos, crios))
+# 	  browser()
           newXypos     <- matrix(ncol=2, nrow=nuevos)
           newXypos[,1] <- rep(xypos[reprod, 1], crios)
           newXypos[,2] <- rep(xypos[reprod, 2], crios)
@@ -360,6 +378,8 @@ ibm <- function(
     # SI TODOS MUEREN
       oldFoodAcum <- NULL
       nombres     <- NULL
+      optPatch    <- NULL
+      hasrep      <- NULL
       m           <- NULL
       xypos       <- NULL
       extinction  <- TRUE
@@ -437,6 +457,7 @@ ibm <- function(
     call=llama,
     extinction=extinction,
     foodAcum=foodAcum,
+    hasrep=hasrep,
     indStats=indStats,
     lands=lands,
     lifeSpan=lifeSpan,
@@ -452,17 +473,17 @@ ibm <- function(
     xypos=xypos)
 
   if (saveRecord) {
-    out$emigra <- emigra
-    out$ijMigra <- ijMigra
-    out$inmigra <- inmigra
-    out$migra <- migra
-    out$pastoAll <- pastoAll
-    out$popMigra <- popMigra
-    out$record <- record
-    out$totalEmigra <- totalEmigra
+    out$emigra       <- emigra
+    out$ijMigra      <- ijMigra
+    out$inmigra      <- inmigra
+    out$migra        <- migra
+    out$pastoAll     <- pastoAll
+    out$popMigra     <- popMigra
+    out$record       <- record
+    out$totalEmigra  <- totalEmigra
     out$totalInmigra <- totalInmigra
-    out$totalMigra <- totalMigra
-    out$vecinos <- vecinos
+    out$totalMigra   <- totalMigra
+    out$vecinos      <- vecinos
   }
 
   class(out) <- c('ibm', class(out))
