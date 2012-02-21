@@ -1,17 +1,17 @@
 source('ibm.R')
 path <- file.path('/home/juan/Dropbox/saves')
 ncor <- 24
-i <- 20
+i <- 24
 
-ex <- seq(-1.3, 0.08, len=ncor)
+ex <- seq(-1.3, log10(1.2), len=ncor)
 M  <- 10 ^ ex
 tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
-tfin <- 100
+tfin <- 2500
 
-run <- ibm(landsDist_=4, landsRdist_=5, levelSeeds=0,
+run <- ibm(landsDist_=1, landsRdist_=4, levelSeeds=0,
            mpd0=6, sizeMode="random", als0=5e8,
-           trs0=0.1, yield=500, tfinal=tfin,
-           M=M[i], saveRecord=TRUE, verboso=TRUE)
+           trs0=0.1, yield=700, tfinal=tfin,
+           M=M[i], saveRecord=T, verboso=TRUE)
 nombre <- paste('prueba-M=', round(M[i], 2), '-', Sys.Date(),
                   '.RData', sep='')
 save(run, file=file.path(path, nombre))

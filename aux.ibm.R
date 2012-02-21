@@ -289,7 +289,7 @@ indivSeed <- function() {
         pos <- numeric(npatch)
         for (i in 1:npatch) {
           cuales <- which(lands$belong[,levelSeeds + 1] == i)
-          pos[i] <- lands$belong[sample(cuales, 1),1]
+          pos[i] <- lands$belong[sample(cuales, 1), 1]
         }
       }
       xypos <- xypasto[pos,]
@@ -620,8 +620,10 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   x.lims <- lims[[1]]
   y.lims <- lims[[2]]
 
-  seriePasto <- sapply(pasto, sum)
-  plotGrass  <- max(x$pop) * seriePasto / (x$parms$yield * nrow(x$lands$coordsAll))
+  if (x$parms$saveRecord) {
+    seriePasto <- sapply(pasto, sum)
+    plotGrass  <- max(x$pop) * seriePasto / (x$parms$yield * nrow(x$lands$coordsAll))
+  }
 
   if (outdir == 'default') {
     out <- 'animation'
@@ -802,8 +804,8 @@ print.ibm <- function(x, stats=TRUE) {
     '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n')
   if (x$parms$saveRecord) {
     cat(
-      'Migrantes promedio, 1er. mitad:\t', round(mig1,3), '\n',
-      'Migrantes promedio, 2da. mitad:\t', round(mig2,3), '\n',
+      'Migrantes promedio, 1er. mitad:\t ', round(mig1,3), '\n',
+      'Migrantes promedio, 2da. mitad:\t ', round(mig2,3), '\n',
       '\nCantidad de parches 0 ocupados (%):\t',
       paste(count, totalPatches0, sep='/'),
         ' (', round(100 * patch0, 2), '%)',

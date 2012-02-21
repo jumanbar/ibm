@@ -1,21 +1,21 @@
 source('ibm.R')
 path <- file.path('/home/juan/Dropbox/saves')
-ncor <- 24
+ncor <- 30
 
 pares   <- seq(2, ncor, by=2)
 impares <- seq(1, ncor, by=2)
 
 # -1.30103000  0.07918125
-ex <- seq(-1.3, 0.08, len=ncor)
+ex <- seq(log10(0.5), log10(3), len=ncor)
 M  <- 10 ^ ex
-tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
+tf <- function(i) round(1750 + (2000 / 2.4) * ex[i])
 
 for (i in 1:length(M)) {
   cat('Va por el', i, 'de', length(M), '\n')
-  run <- ibm(landsDist_=4, landsRdist_=5, levelSeeds=0,
+  run <- ibm(landsDist_=1, landsRdist_=10, levelSeeds=0,
              mpd0=6, sizeMode="random", als0=5e8,
-             trs0=0.1, yield=2000, tfinal=tf(i),
-             M=M[i], saveRecord=FALSE, verboso=FALSE)
+             trs0=0.1, yield=650, tfinal=tf(i),
+             M=M[i], saveRecord=FALSE, verboso=TRUE)
   nombre <- paste('corrida-M=', round(M[i], 2), '-', Sys.Date(),
                   '.RData', sep='')
   save(run, file=file.path(path, nombre))
@@ -26,4 +26,3 @@ for (i in 1:length(M)) {
 # [13]  0.36746619  0.49619476  0.67001875  0.90473572  1.22167735  1.64964807
 # [19]  2.22754295  3.00788252  4.06158599  5.48441658  7.40568469 10.00000000
 
-i <- 24; run <- ibm(landsDist_=4, landsRdist_=5, levelSeeds=0, mpd0=6, sizeMode="random", als0=5e8, trs0=0.1, yield=2000, tfinal=tf(i), M=M[i], saveRecord=FALSE, verboso=TRUE)

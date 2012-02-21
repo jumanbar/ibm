@@ -155,11 +155,10 @@ ibm <- function(
     if (ptsMode != 'PBB')
       psi <- psi + trs
     tmcBiom <- tmc * m_c / E_cr
-
+    obtEner   <- numeric(N)
 #     RCB <- - (tmc + mmc * m_c / E_cr) # mmc = maximum movement cost
 #     #-->RCB = "Random Choice Balance"
 #     #-->"No Movement Balance"
-    obtEner   <- numeric(N)
 
     if (randomTurn) {
       # Para que el orden en q actúan sea aleatorio:
@@ -385,7 +384,8 @@ ibm <- function(
       extinction  <- TRUE
       lifeSpan    <- NULL
       nuevos      <- 0
-      vecinos[[t_]][1:npatchFocus] <- 0
+      if (saveRecord)
+        vecinos[[t_]][1:npatchFocus] <- 0
       #-->Valores para poner en el objeto 'record'
     }
     births[t_] <- nuevos
