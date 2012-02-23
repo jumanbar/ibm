@@ -237,26 +237,27 @@ importer <- function(im, tfinal) {
     }
     lastname   <- nombres[N]
 
-    pop <- c(pop, numeric(tplus))
+    pop    <- c(pop, numeric(tplus))
     births <- c(births, numeric(tplus))
     deaths <- c(deaths, numeric(tplus))
+    pastoPop <- c(pastoPop, numeric(tplus))
     if (saveRecord) {
       pastoAll <- c(pastoAll, vector('list', tplus))
       pasto <- pastoAll[[t_]]
-      ijMigra <- c(ijMigra, numeric(tplus))
-      popMigra <- c(popMigra, numeric(tplus))
-      totalMigra <- c(totalMigra, numeric(tplus))
-      totalEmigra <- c(totalEmigra, numeric(tplus))
-      totalInmigra <- c(totalInmigra, numeric(tplus))
+#       ijMigra <- c(ijMigra, numeric(tplus))
+#       popMigra <- c(popMigra, numeric(tplus))
+#       totalMigra <- c(totalMigra, numeric(tplus))
+#       totalEmigra <- c(totalEmigra, numeric(tplus))
+#       totalInmigra <- c(totalInmigra, numeric(tplus))
       record <- c(record, vector('list', tplus))
-      migra <- c(migra, vector('list', tplus))
-      migra_t <- migra[[t_]]
-      emigra <- c(emigra, vector('list', tplus))
-      emigra_t <- emigra[[t_]]
-      inmigra <- c(inmigra, vector('list', tplus))
-      inmigra_t <- inmigra[[t_]]
-      vecinos <- c(vecinos, vector('list', tplus))
-      vec.t <- vecinos[[t_]]
+#       migra <- c(migra, vector('list', tplus))
+#       migra_t <- migra[[t_]]
+#       emigra <- c(emigra, vector('list', tplus))
+#       emigra_t <- emigra[[t_]]
+#       inmigra <- c(inmigra, vector('list', tplus))
+#       inmigra_t <- inmigra[[t_]]
+#       vecinos <- c(vecinos, vector('list', tplus))
+#       vec.t <- vecinos[[t_]]
     }
     t_ <- t_ + 1
   })
@@ -320,6 +321,7 @@ indivSeed <- function() {
     foodAcum <- numeric(N)
     babyBiom <- numeric(N)
     optPatch <- numeric(N) * NA
+    last.patch <- numeric(N)
   })
 }
 ####################################
@@ -389,26 +391,38 @@ migrator <- function() {
   with(parent.frame(), {
     for (j in 1:npatchFocus) {
       vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[j]], bound=TRUE)
-      vec.t[[j]] <- nombres[vec]
-      emigra_t[[j]]  <- c(emigra_t[[j]], setdiff(vecinos[[t_ - 1]][[j]],
-                                                 vec.t[[j]]))
+      vec.t[[j]]  <- nombres[vec]
+      emigra_t[[j]] <- c(emigra_t[[j]], setdiff(vecinos[[t_ - 1]][[j]],
+						 vec.t[[j]]))
       inmigra_t[[j]] <- setdiff(vec.t[[j]],
-                                vecinos[[t_ - 1]][[j]])
+				vecinos[[t_ - 1]][[j]])
     }
 
     for (j in 1:npatchFocus) {
-        for (k in (1:npatchFocus)[-j]) {
-        common <- intersect(emigra_t[[k]],  # parche de origen
-                            vec.t[[j]]) # parche de destino
-        migra_t[j, k]  <- length(common)
-        #-->migra[i,j] = migración de j --> i
-        emigra_t[[k]] <- setdiff(emigra_t[[k]], common)
+	for (k in (1:npatchFocus)[-j]) {
+	common <- intersect(emigra_t[[k]],  # parche de origen
+			    vec.t[[j]]) # parche de destino
+	migra_t[j, k]  <- length(common)
+	#-->migra[i,j] = migración de j --> i
+	emigra_t[[k]] <- setdiff(emigra_t[[k]], common)
       }
     }
     vecinos[[t_]] <- vec.t
     migra[[t_]]   <- migra_t
     emigra[[t_]]  <- emigra_t
     inmigra[[t_]] <- inmigra_t
+  })
+}
+####################################
+####################################
+mig.litte <- function() {
+  with(parent.frame(), {
+    last.patch <- next.patch
+    for (j in 1:npatchFocus) {
+      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[j]], bound=TRUE)
+      next.patch[vec] <- j
+    }
+    totalMigra[t_] <- sum(next.patch != last.patch)
   })
 }
 ####################################
@@ -421,17 +435,22 @@ mklands <- function(dim_=2, dist_=1, lmax_=2, n_=3, rdist_=3, type='fractal') {
   n_ <- round(n_)
   npatch <- (n_ ^ dim_) ^ lmax_
 
-  areas  <- vector('list', lmax_)
-  belong <- as.data.frame(matrix(1:npatch, nrow=npatch, ncol=lmax_))
-  names(belong) <- names(areas) <- paste('l', 0:(lmax_ - 1), sep='')
-
-  if (lmax_ <= 1) {
+  if (lmax_ == 0) {
+    coordsAll <- matrix(0, 1, 2)
+    pos <- 0
     areas <- vector('list', 1)
-    if (npatch == 1) {
-      coordsAll <- matrix(0, 1, 2)
-      pos       <- 0
-    }
+    npatch <- n_ <- 1
   }
+
+  if (lmax_ == 1 && npatch == 1) {
+    coordsAll <- matrix(0, 1, 2)
+    pos       <- 0
+  }
+
+  ltop <- ifelse(lmax_ == 0, 1, lmax_)
+  areas  <- vector('list', ltop)
+  belong <- as.data.frame(matrix(1:npatch, nrow=npatch, ncol=ltop))
+  names(belong) <- names(areas) <- paste('l', 0:(ltop - 1), sep='')
 
   if (type == 'fractal' && npatch > 1) {
     dists_ <- NULL
@@ -579,7 +598,7 @@ mvar <- function(m_) {
 # 	   cex=tamano * .2, col='white')
 #     legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
 #     
-#     plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
+#     plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.5, col='#409951',
 #          xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
 #          xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
 #     points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
@@ -599,16 +618,18 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   M         <- x$parms$M
   lands     <- x$lands
   pos       <- x$lands$pos
+  pop       <- x$pop
+  pastoPop  <- x$pastoPop
   coordsAll <- x$lands$coordsAll
-  record    <- x$record
   tfinal    <- length(x$pop)
   if (tfinal < x$parms$tfinal) {
     tfinal <- tfinal - 1
   }
-  dmin      <- ifelse(length(pos) > 1, min(diff(pos)), 1)
-  maxname   <- record[[tfinal]]$name[nrow(record[[tfinal]])]
-  pasto     <- x$pastoAll
-  yield     <- x$parms$yield
+  dmin    <- ifelse(length(pos) > 1, min(diff(pos)), 1)
+  if (x$parms$saveRecord)
+    rec     <- x$record
+  maxname <- max(x$nombres)
+  yield   <- x$parms$yield
 
   ini   <- ifelse(missing(from), 1, from)
   fin   <- ifelse(missing(to), tfinal, to)
@@ -620,10 +641,7 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   x.lims <- lims[[1]]
   y.lims <- lims[[2]]
 
-  if (x$parms$saveRecord) {
-    seriePasto <- sapply(pasto, sum)
-    plotGrass  <- max(x$pop) * seriePasto / (x$parms$yield * nrow(x$lands$coordsAll))
-  }
+  plotGrass <- max(pop) * pastoPop / (yield * nrow(coordsAll))
 
   if (outdir == 'default') {
     out <- 'animation'
@@ -634,44 +652,48 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   
   if (kind == 'pop' || kind == 2) {
     if (x$parms$grassMode != 'fixed') {
-      plot(plotGrass[times], type='l', pch=19, lwd=1.25, col='#409951',
-      ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
-      points(x$totalMigra[times], lwd=1.25, col='#B32323', type='l', pch=20)
+      plot(plotGrass[times], type='l', pch=19, lwd=1.5, col='#409951',
+           ylim=c(0, max(pop[times]) * uplim), ylab='Población (N)', 
+	   xlab='Iteración', ...)
+      points(x$totalMigra[times], lwd=1.5, col='#B32323', type='l', pch=20)
     } else {
-      plot(x$totalMigra[times], type='l', pch=20, lwd=1.25, col='#B32323',
-      ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
+      plot(x$totalMigra[times], type='l', pch=20, lwd=1.5, col='#B32323',
+           ylim=c(0, max(pop[times]) * uplim), ylab='Población (N)',
+	   xlab='Iteración', ...)
     }
     points(x$pop[times], lwd=2, col=col1, type='l', pch=20)
   }
 
   if (kind == 'foto' || kind == 3) {
-      parop <- par(mfrow=c(1, 2), mar=c(4,5.5,1.5,1.5))
-      plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
-           cex.lab=1.7, cex.axis=1.7)
-      rec <- record[[t_]]
-      noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-      noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
-      tamano <- (rec$m / M + 1) * resFactor
-      points(rec$x + noise1, rec$y + noise2,
-             pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
-      points(rec$x + noise1, rec$y + noise2,
-             pch=21, cex=tamano, col=1)
-      if (!is.null(follow)) {
-        frec <- subset(rec, name %in% follow)
-        text(frec$x, frec$y, labels=frec$name)
-      }
+    if (!x$parms$saveRecord)
+      cat('Cannot do this plot if saveRecord is not TRUE ')
+    parop <- par(mfrow=c(1, 2), mar=c(4, 5.5, 1.5, 1.5))
+    plot(lands, yield=yield, pasto=pasto[[t_]], ylim=y.lims, xlim=x.lims,
+	 cex.lab=1.7, cex.axis=1.7)
+    rec <- record[[t_]]
+    noise1 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+    noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
+    tamano <- (rec$m / M + 1) * resFactor
+    points(rec$x + noise1, rec$y + noise2,
+	   pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
+    points(rec$x + noise1, rec$y + noise2,
+	   pch=21, cex=tamano, col=1)
+    if (!is.null(follow)) {
+      frec <- subset(rec, name %in% follow)
+      text(frec$x, frec$y, labels=frec$name)
+    }
 #       text(rec$x + noise1, rec$y + noise2, labels=rec$name,
 # 	   cex=tamano * .2, col='white')
 #     text(x, y = NULL, labels = seq_along(x), adj = NULL,
 #          pos = NULL, offset = 0.5, vfont = NULL,
 #          cex = 1, col = NULL, font = NULL, ...)
-      legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
-      
-      plot(1:t_, plotGrass[1:t_], type='l', pch=19, lwd=1.25, col='#409951',
-           xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
-	   xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
-      points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='l', pch=20)
-      par(parop)
+    legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
+    
+    plot(1:t_, plotGrass[1:t_], type='l', pch=19, lwd=1.5, cosl='#409951',
+	 xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
+	 xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
+    points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='l', pch=20)
+    par(parop)
   }
   if (kind %in% c('gvis', 4)) {
     Motion <- plotGvisMotionChart(x, from=ini, to=fin, show=FALSE)
@@ -777,51 +799,53 @@ print.ibm <- function(x, stats=TRUE) {
   halfTime <- round(tiempo / 2)
   pop1     <- mean(x$pop[1:(halfTime - 1)])
   pop2     <- mean(x$pop[halfTime:tiempo])
-  if (x$parms$saveRecord) {
-    mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
-    mig2     <- mean(x$totalMigra[halfTime:tiempo])
-  }
-  LF <- x$parms$levelFocus
+  mig1     <- mean(x$totalMigra[1:(halfTime - 1)])
+  mig2     <- mean(x$totalMigra[halfTime:tiempo])
+  pas1     <- mean(x$pastoPop[1:(halfTime - 1)])
+  pas2     <- mean(x$pastoPop[halfTime:tiempo])
 
   lands <- x$lands
-  totalPatches0 <- with(lands, length(pos) ^ parms$dim_)
-  xypos <- x$xypos
-  count <- 0
+  LF <- x$parms$levelFocus
+  nPatches0 <- length(lands$areas[[1]])
+  nPatches  <- length(lands$areas[[LF + 1]])
+  xypos   <- x$xypos
+  count0  <- 0
+  countLF <- 0
   if (length(x$xypos) > 0) {
-    for (i in 1:totalPatches0) {
-      vec   <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
-      count <- count + (length(vec) > 0)
+    for (i in 1:nPatches0) {
+      vec    <- inpip(xypos, lands$areas$l0[[i]], bound=TRUE)
+      count0 <- count0 + (length(vec) > 0)
+    }
+    for (j in 1:nPatches) {
+      vec     <- inpip(xypos, lands$areas[[LF + 1]][[j]], bound=TRUE)
+      countLF <- countLF + (length(vec) > 0)
     }
   }
-  patch0    <- count / totalPatches0
-  nPatches  <- length(x$vecinos[[tiempo]])
-  nVecinos  <- sapply(x$vecinos[[tiempo]], countPositives)
-  nOccupied <- sum(nVecinos > 0)
+  nOccupied0 <- count0
+  nOccupied  <- countLF
   level <- x
   cat(
     '\nTiempo total de simulación:\t', tiempo, ' iteraciones\n',
     '\nPoblación promedio, 1er. mitad:\t', round(pop1,2),
-    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n')
-  if (x$parms$saveRecord) {
-    cat(
-      'Migrantes promedio, 1er. mitad:\t ', round(mig1,3), '\n',
-      'Migrantes promedio, 2da. mitad:\t ', round(mig2,3), '\n',
-      '\nCantidad de parches 0 ocupados (%):\t',
-      paste(count, totalPatches0, sep='/'),
-        ' (', round(100 * patch0, 2), '%)',
-      '\nCantidad de parches ', LF,' ocupados (%):\t',
-      paste(nOccupied, nPatches, sep='/'),
-        ' (', round(100 * nOccupied / nPatches, 2), '%)',
-      sep='')
-  }
-
-  grass    <- x$pasto[tiempo]
-  yield    <- x$parms$yield
-  perYield <- 100 * (1 - mean(grass) / yield)
-  
+    '\nPoblación promedio, 2da. mitad:\t', round(pop2,2), '\n',
+    '\nMigrantes promedio, 1er. mitad:\t', round(mig1,3),
+    '\nMigrantes promedio, 2da. mitad:\t', round(mig2,3), '\n')
   cat(
-    '\nRecursos promedio por parche (nivel 0):\t', round(mean(grass), 1),
-    '\nProm. de recursos consumidos:\t\t', round(perYield, 1), '%\n',
+    '\nParches 0 ocupados:\t',
+    paste(nOccupied0, nPatches0, sep='/'),
+      ' (', round(100 * nOccupied0, 2), '%)',
+    '\nParches ', LF,' ocupados:\t',
+    paste(nOccupied, nPatches, sep='/'), ' (',
+    round(100 * nOccupied / nPatches, 2), '%)',
+    sep='')
+
+  yield <- x$parms$yield
+
+  cat(
+    '\nRecursos por parche (nivel 0), 1er. mitad: ',
+    round(100 * pas1 / (yield * nPatches0), 2), '%',
+    '\nRecursos por parche (nivel 0), 2da. mitad: ',
+    round(100 * pas2 / (yield * nPatches0), 2), '%\n',
     '\nTIEMPO TOTAL DE SIMULACIÓN:\t', round(x$tiempo, 1),
     's.\n\n',
     sep='')
@@ -893,7 +917,9 @@ register <- function() {
     extinction <- FALSE
 
     #  0.3.b Vectores
-    pasto         <- rep.int(yield, nrow(xypasto))
+    pasto       <- rep.int(yield, nrow(xypasto))
+    pastoPop    <- numeric(tfinal)
+    pastoPop[1] <- sum(pasto)
     if (saveRecord) {
       pastoAll      <- vector('list', length=tfinal)
       pastoAll[[1]] <- pasto
@@ -901,11 +927,13 @@ register <- function() {
     pop           <- numeric(tfinal)
     births        <- numeric(tfinal)
     deaths        <- numeric(tfinal)
+    totalMigra    <- numeric(tfinal)
     ALS           <- als0 * M ^ alsExp
 #     lifeSpan      <- rpois(N, ALS)
     lifeSpan      <- round(runif(N, ALS * 0.05, ALS * .95))
     extra_t       <- 0
-    t_ <- 2; pop[1] <- N
+    t_ <- 2
+    pop[1] <- N
   
     if (saveRecord) {
       #  0.3.c Tabla
@@ -916,25 +944,33 @@ register <- function() {
                   x=xypos[,1],
                   y=xypos[,2])
     
-      # 0.3.d Migración
-      migra   <- vector('list', tfinal)
-      migra_t <- matrix(0, npatchFocus, npatchFocus) -> migra[[1]]
-      #-->migra_t[i,j] = migración de j --> i
-      emigra    <- vector('list', tfinal)
-      emigra_t  <- vector('list', npatchFocus)
-      inmigra   <- vector('list', tfinal)
-      inmigra_t <- vector('list', npatchFocus)
-      vecinos   <- vector('list', tfinal)
-      vec.t <- vector('list', npatchFocus)
-      for (v in 1:npatchFocus) {
-        emigra_t[[v]]  <- 0
-        inmigra_t[[v]] <- 0
-        vec.t[[v]] <- nombres[inpip(xypos,
-                                        lands$areas[[levelFocus + 1]][[v]],
-                                        bound=TRUE)]
+#       0.3.d Migración
+#       migra   <- vector('list', tfinal)
+#       migra_t <- matrix(0, npatchFocus, npatchFocus) -> migra[[1]]
+#       #-->migra_t[i,j] = migración de j --> i
+#       emigra    <- vector('list', tfinal)
+#       emigra_t  <- vector('list', npatchFocus)
+#       inmigra   <- vector('list', tfinal)
+#       inmigra_t <- vector('list', npatchFocus)
+#       vecinos   <- vector('list', tfinal)
+#       vec.t     <- vector('list', npatchFocus)
+#       for (v in 1:npatchFocus) {
+#         emigra_t[[v]]  <- 0
+#         inmigra_t[[v]] <- 0
+#         vec.t[[v]] <- nombres[inpip(xypos,
+# 				    lands$areas[[levelFocus + 1]][[v]],
+#                                     bound=TRUE)]
+#       }
+#       vecinos[[1]] <- vec.t
       }
-      vecinos[[1]] <- vec.t
+#     } else {
+    # Migración:
+    for (j in 1:npatchFocus) {
+      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[j]], bound=TRUE)
+      last.patch[vec] <- j
     }
+    next.patch <- last.patch
+#     }
   })
 }
 ####################################

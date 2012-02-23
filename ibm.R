@@ -33,7 +33,7 @@ ibm <- function(
       landsRdist_=3,
       landsType='fractal', # fractal | regular | randUnif
       # (fin)
-      levelSeeds=0,
+      levelSeeds=1,
       # integer -1 (random) | 0 | 1 | 2 ... (landsLmax_ - 1)
       levelFocus=1, # integer 0 | 1 | 2 ... (landsLmax_ - 1)
       logitA0=-2.5, # numeric
@@ -100,7 +100,7 @@ ibm <- function(
                        type=landsType)
     }
     landsLmax_ <- lands$parms$lmax_
-    if (levelFocus >= landsLmax_)
+    if (levelFocus >= landsLmax_ && levelFocus > 0)
       levelFocus <- landsLmax_ - 1
       #-->Si no se hace esta corrección va a dar error
   
@@ -303,14 +303,16 @@ ibm <- function(
     extraBiom[extraBiom < 0] <- 0
 
     # 1.5 REGISTRO DE MIGRACIONES
-    if (saveRecord)
-      migrator()
+#     if (saveRecord)
+#       migrator()
+    mig.litte()
 
     # 2. REGENERACIÓN DE PASTO
 #     browser()
     if (saveRecord)
       pastoAll[[t_]] <- pasto
     grassGrow()
+    pastoPop[t_] <- sum(pasto)
 
     # 3. SUPERVIVENCIA
     lifeSpan <- lifeSpan - 1
@@ -329,6 +331,8 @@ ibm <- function(
       optPatch  <- optPatch[alive]
       reser     <- reser[alive]
       m         <- m[alive]
+      last.patch <- last.patch[alive]
+      next.patch <- next.patch[alive]
 #        pos       <- pos[alive]
       xypos     <- xypos[survive,]
       dim(xypos) <- c(sum(survive), 2)
@@ -418,14 +422,14 @@ ibm <- function(
   if (saveRecord) {
     record   <- record[1:t_]
     pastoAll <- pastoAll[1:t_]
-    migra    <- migra[1:t_]
-    vecinos  <- vecinos[1:t_]
-    emigra   <- emigra[1:t_]
-    inmigra  <- inmigra[1:t_]
+#     migra    <- migra[1:t_]
+#     vecinos  <- vecinos[1:t_]
+#     emigra   <- emigra[1:t_]
+#     inmigra  <- inmigra[1:t_]
   }
-  llama    <- match.call()
-  frm      <- formals(ibm)
-  parms    <- lapply(names(frm), get, envir=sys.parent(0))
+  llama <- match.call()
+  frm   <- formals(ibm)
+  parms <- lapply(names(frm), get, envir=sys.parent(0))
   names(parms) <- names(frm)
 
   if (landsisnull)
@@ -440,15 +444,15 @@ ibm <- function(
       parms$lands <- NULL
   }
 
-  if (saveRecord) {
-    totalMigra <- sapply(migra, sum)
-    ijMigra <- totalMigra / (npatchFocus * (npatchFocus - 1))
+#   if (saveRecord) {
+#     totalMigra <- sapply(migra, sum)
+#     ijMigra  <- totalMigra / (npatchFocus * (npatchFocus - 1))
     #-->ijMigra: cantidad de migrantes per i ---> j (pares de parches)
-    popMigra <- totalMigra / pop
-    sumMig <- function(mig) sum(unlist(mig))
-    totalEmigra <- sapply(emigra, function(x) sum(unlist(x)))
-    totalInmigra <- sapply(inmigra, function(x) sum(unlist(x)))
-  }
+#     popMigra <- totalMigra / pop
+    #-->popMigra: cantidad de migrantes per cápita
+#     totalEmigra  <- sapply(emigra,  function(x) sum(unlist(x)))
+#     totalInmigra <- sapply(inmigra, function(x) sum(unlist(x)))
+#   }
 
   # LISTA DE SALIDA
   out <- list(
@@ -462,30 +466,34 @@ ibm <- function(
     hasrep=hasrep,
     indStats=indStats,
     lands=lands,
+    last.patch=last.patch,
     lifeSpan=lifeSpan,
     m=m,
+    next.patch=next.patch,
     nombres=nombres,
     optPatch=optPatch,
     parms=parms,
     pasto=pasto,
+    pastoPop=pastoPop,
     pointsFun=pointsFun,
     pop=pop,
     reser=reser,
     tiempo=proc.time()[3] - ptm + extra_t,
+    totalMigra=totalMigra,
     xypos=xypos)
 
   if (saveRecord) {
-    out$emigra       <- emigra
-    out$ijMigra      <- ijMigra
-    out$inmigra      <- inmigra
-    out$migra        <- migra
+#     out$emigra       <- emigra
+#     out$ijMigra      <- ijMigra
+#     out$inmigra      <- inmigra
+#     out$migra        <- migra
     out$pastoAll     <- pastoAll
-    out$popMigra     <- popMigra
+#     out$popMigra     <- popMigra
     out$record       <- record
-    out$totalEmigra  <- totalEmigra
-    out$totalInmigra <- totalInmigra
-    out$totalMigra   <- totalMigra
-    out$vecinos      <- vecinos
+#     out$totalEmigra  <- totalEmigra
+#     out$totalInmigra <- totalInmigra
+#     out$totalMigra   <- totalMigra
+#     out$vecinos      <- vecinos
   }
 
   class(out) <- c('ibm', class(out))
@@ -493,12 +501,8 @@ ibm <- function(
   if (showSummary)
     print(out, stats=FALSE)
 
-  if (plotPop && saveRecord)
+  if (plotPop)
     plot(out, 'pop')
-  if (plotPop && !saveRecord) {
-    plot(pop, xlab='Iteración', ylab='Población (N)', type='o',
-         pch=20, lwd=1.5)
-  }
 
   return(out)
 }
