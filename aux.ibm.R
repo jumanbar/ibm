@@ -189,7 +189,7 @@ grassGrow <- function() {
       },
       bholt={
         # Los pastos crecen con una función logística.
-        pasto[pasto < tol] <- yield * 0.02
+        pasto[pasto < tol] <- yield * 0.05
         pasto <- bholt(pasto, Ro=pastoRo, K=yield)
       },
       randSprout={
@@ -270,8 +270,6 @@ indivSeed <- function() {
     if (levelSeeds < 0 || tolower(levelSeeds) == 'random') {
     # Repartija aleatoria de individuos en los parches nivel 0
       N       <- N_0
-      nombres <- 1:N
-      hasrep  <- numeric(N) > 100 # has reproduced previously?
       pos     <- sample(nrow(xypasto), N, replace=TRUE)
       xypos   <- xypasto[pos,]
       if (length(pos) == 1) {
@@ -282,8 +280,6 @@ indivSeed <- function() {
     # Repartijas con criterios más selectivos
       npatch  <- length(lands$areas[[levelSeeds + 1]])
       N       <- npatch
-      nombres <- 1:N
-      hasrep  <- numeric(N) > 100
       if (levelSeeds %in% c(0, 'all')) {
       # Un individuo por parche de nivel 0
         pos <- 1:N
@@ -307,14 +303,10 @@ indivSeed <- function() {
     # menor que N_0), agrego nuevos individuos en lugares al azar:
       more    <- N_0 - N
       N       <- N_0
-      nombres <- 1:N
-      hasrep  <- numeric(0) > 100
       posMore <- sample(nrow(xypasto), more, replace=TRUE)
       xypos   <- rbind(xypos, xypasto[posMore,])
     }
-  
-    lastname <- N
-    foodAcum <- numeric(N)
+    
     m <- switch(sizeMode,
                   adults = rep.int(M, N),
                   infants = rep.int(m0, N),
@@ -322,6 +314,10 @@ indivSeed <- function() {
                   ratio = sample(c(m0, M), N, replace=TRUE,
                                  prob=c(1, sizeRatio)))
     reser    <- trs0 * m ^ trsExp
+    nombres  <- 1:N
+    lastname <- N
+    hasrep   <- numeric(N) > 1 # has reproduced previously?
+    foodAcum <- numeric(N)
     babyBiom <- numeric(N)
     optPatch <- numeric(N) * NA
   })
@@ -638,14 +634,14 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   
   if (kind == 'pop' || kind == 2) {
     if (x$parms$grassMode != 'fixed') {
-      plot(plotGrass[times], type='o', pch=19, lwd=1.25, col='#409951',
+      plot(plotGrass[times], type='l', pch=19, lwd=1.25, col='#409951',
       ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
-      points(x$totalMigra[times], lwd=1.25, col='#B32323', type='o', pch=20)
+      points(x$totalMigra[times], lwd=1.25, col='#B32323', type='l', pch=20)
     } else {
-      plot(x$totalMigra[times], type='o', pch=20, lwd=1.25, col='#B32323',
+      plot(x$totalMigra[times], type='l', pch=20, lwd=1.25, col='#B32323',
       ylim=c(0, max(x$pop[times]) * uplim), ylab='Población (N)', xlab='Iteración', ...)
     }
-    points(x$pop[times], lwd=2, col=col1, type='o', pch=20)
+    points(x$pop[times], lwd=2, col=col1, type='l', pch=20)
   }
 
   if (kind == 'foto' || kind == 3) {
@@ -671,10 +667,10 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
 #          cex = 1, col = NULL, font = NULL, ...)
       legend('topleft', legend=x$pop[t_], cex=1.5, bty='n')
       
-      plot(1:t_, plotGrass[1:t_], type='o', pch=19, lwd=1.25, col='#409951',
+      plot(1:t_, plotGrass[1:t_], type='l', pch=19, lwd=1.25, col='#409951',
            xlim=c(1, t_), ylim=c(0, max(x$pop) * uplim), ylab='Población (N)',
 	   xlab='Iteración', cex.lab=1.7, cex.axis=1.7)
-      points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='o', pch=20)
+      points(1:t_, x$pop[1:t_], lwd=3, col=col1, type='l', pch=20)
       par(parop)
   }
   if (kind %in% c('gvis', 4)) {
@@ -693,12 +689,12 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
 ####################################
 ####################################
 plot.lands <- function(x, yield=1, pasto=rep(yield, nrow(x$coordsAll)),
-                       cex.grass=3, pch.grass=19, ...) {
+                       cex.grass=3, col='#BAFFC7', pch.grass=19, ...) {
   with(x, {
     cex.grass <- cex.grass * (pasto / yield)
     plot(coordsAll, xlab='x', ylab='y',
          cex=cex.grass, pch=pch.grass,
-         col='#BAFFC7', ...)
+         col=col, ...)
     rm(cex.grass)
   })
 }
@@ -844,7 +840,7 @@ print.stats <- function(x) {
       ' KJ/day\tPSI = ', round(PSI, 4), ' Kg/day\n\tM0  = ', round(M0, 2),
       ' Kg\t\tMPD = ', round(MPD, 3), ' Km', '\t\tTRS = ', round(TRS, 4),
       ' Kg\n\tTMC = ', round(TMC, 3), ' Kg/day', '\tREE = ', round(REE, 3),
-      ' KJ\tALS = ', round(ALS), ' days\n',
+      ' KJ\t\tALS = ', round(ALS), ' days\n',
       sep='')
     cat('\n\tTAMAÑO: ', round(M, 3), 'Kg\n')
     })
@@ -870,12 +866,12 @@ rectas <- function(tabla) {
   masTramos <- TRUE 
   while (masTramos) {
     cat('\nVER GRÁFICA:\n')
-    plot(popAllK ~ logSize, data=tabla, type='o', log='y')
+    plot(popAllK ~ logSize, data=tabla, type='l', log='y')
     mastramos <- readline('¿Agregar un tramo?')
   }
   
   r <- lm(log10(popAllK) ~ logSize, data=tabla)
-  plot(popAllK ~ logSize, data=tabla, type='o', log='y')
+  plot(popAllK ~ logSize, data=tabla, type='l', log='y')
   abline(r, col=2, lwd=3)
   
   cat('\nRECTA AJUSTADA:')
