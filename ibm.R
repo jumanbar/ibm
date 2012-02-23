@@ -302,10 +302,7 @@ ibm <- function(
     reser[extraBiom > 0] <- trs[extraBiom > 0]
     extraBiom[extraBiom < 0] <- 0
 
-    # 1.5 REGISTRO DE MIGRACIONES
-#     if (saveRecord)
-#       migrator()
-    mig.litte()
+
 
     # 2. REGENERACIÓN DE PASTO
 #     browser()
@@ -333,9 +330,13 @@ ibm <- function(
       m         <- m[alive]
       last.patch <- last.patch[alive]
       next.patch <- next.patch[alive]
-#        pos       <- pos[alive]
       xypos     <- xypos[survive,]
       dim(xypos) <- c(sum(survive), 2)
+      # 1.5 REGISTRO DE MIGRACIONES
+      mig.litte()
+      #if (saveRecord)
+      #  migrator()
+      
       # 6. CRECIMIENTO Y REPRODUCCIÓN
       nuevos <- 0
       m <- m + (extraBiom) * E_cr / E_c
@@ -366,13 +367,11 @@ ibm <- function(
           m            <- c(m, rep(m0, nuevos))
           reser        <- c(reser, rep(trsMin, nuevos))
           babyBiom     <- c(babyBiom, numeric(nuevos))
-# ~          print(crios)
-#            newpos       <- c(pos, rep(pos, crios))
-# 	  browser()
           newXypos     <- matrix(ncol=2, nrow=nuevos)
           newXypos[,1] <- rep(xypos[reprod, 1], crios)
           newXypos[,2] <- rep(xypos[reprod, 2], crios)
           xypos        <- rbind(xypos, newXypos)
+	  next.patch   <- c(next.patch, rep(next.patch[reprod], crios))
         }
       }
 

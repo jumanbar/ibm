@@ -3,16 +3,16 @@ path <- file.path('/home/juan/Dropbox/saves')
 ncor <- 24
 i <- 24
 
-ex <- seq(log10(0.001), log10(0.5), len=ncor)
+ex <- seq(log10(0.001), log10(5), len=ncor)
 M  <- 10 ^ ex
 tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
 tfin <- 1000
 
 # M[i] <- 3.229378
 
-run <- ibm(landsDist_=1, landsRdist_=5, N_0=9, levelSeeds=1,
-           mpd0=6, sizeMode="random", als0=5e8,
-           trs0=0.1, yield=500, tfinal=tfin, chFun=chooseMax,
+run <- ibm(landsDist_=1, landsRdist_=10, N_0=9, levelSeeds=1,
+           mpd0=6, sizeMode="random", grassMode='bholt',
+           trs0=0.1, yield=2000, tfinal=tfin,
            M=M[i], saveRecord=F, verboso=T)
 nombre <- paste('prueba-M=', round(M[i], 2), '-', Sys.Date(),
                   '.RData', sep='')

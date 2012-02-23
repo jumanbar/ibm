@@ -833,7 +833,7 @@ print.ibm <- function(x, stats=TRUE) {
   cat(
     '\nParches 0 ocupados:\t',
     paste(nOccupied0, nPatches0, sep='/'),
-      ' (', round(100 * nOccupied0, 2), '%)',
+      ' (', round(100 * nOccupied0 / nPatches0, 2), '%)',
     '\nParches ', LF,' ocupados:\t',
     paste(nOccupied, nPatches, sep='/'), ' (',
     round(100 * nOccupied / nPatches, 2), '%)',
