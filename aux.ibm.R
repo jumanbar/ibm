@@ -96,7 +96,7 @@ feed <- function(foodAcum, mei, pasto) {
 fixedObjects <- function() {
   with(parent.frame(), {
     # Error tolerance:
-    tol <- 1e-6
+    tol <- 5e-8
     # Fixed individual stats:
     m0     <- pm * M
     trsMax <- trs0 * M ^ trsExp
@@ -106,6 +106,9 @@ fixedObjects <- function() {
     cfaRand <- ellipse(0, centre=c(0, 0), t=1, npoints=60)
     xypasto <- as.matrix(lands$coordsAll)
     npatchFocus <- length(lands$areas[[levelFocus + 1]])
+    # Points function
+    if (identical(chFun, chooseFromAll))
+      pointsFun <- function() with(parent.frame(), input)
   })
 }
 ####################################
@@ -287,9 +290,9 @@ indivSeed <- function() {
       } else {
       # Un individuo por parche de nivel 'levelSeeds'
         pos <- numeric(npatch)
-        for (i in 1:npatch) {
-          cuales <- which(lands$belong[,levelSeeds + 1] == i)
-          pos[i] <- lands$belong[sample(cuales, 1), 1]
+        for (j in 1:npatch) {
+          cuales <- which(lands$belong[,levelSeeds + 1] == j)
+          pos[j] <- lands$belong[sample(cuales, 1), 1]
         }
       }
       xypos <- xypasto[pos,]
@@ -345,6 +348,7 @@ p.max=10 # numeric
 p.0=0.01 # probability
 p.1=0.9 # probability
 # --+
+pfIdem <- function() with(parent.frame(), input)
 pfLogitAuto <- function() {
   out <- with(parent.frame(), {
     logitA0 <- log(p.0 / (1 - p.1))
@@ -387,22 +391,22 @@ pfGompManual <- function() {
 ####################################
 migrator <- function() {
   with(parent.frame(), {
-    for (i in 1:npatchFocus) {
-      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[i]], bound=TRUE)
-      vec.t[[i]] <- nombres[vec]
-      emigra_t[[i]]  <- c(emigra_t[[i]], setdiff(vecinos[[t_ - 1]][[i]],
-                                                 vec.t[[i]]))
-      inmigra_t[[i]] <- setdiff(vec.t[[i]],
-                                vecinos[[t_ - 1]][[i]])
+    for (j in 1:npatchFocus) {
+      vec <- inpip(xypos, lands$areas[[levelFocus + 1]][[j]], bound=TRUE)
+      vec.t[[j]] <- nombres[vec]
+      emigra_t[[j]]  <- c(emigra_t[[j]], setdiff(vecinos[[t_ - 1]][[j]],
+                                                 vec.t[[j]]))
+      inmigra_t[[j]] <- setdiff(vec.t[[j]],
+                                vecinos[[t_ - 1]][[j]])
     }
 
-    for (i in 1:npatchFocus) {
-        for (j in (1:npatchFocus)[-i]) {
-        common <- intersect(emigra_t[[j]],  # parche de origen
-                            vec.t[[i]]) # parche de destino
-        migra_t[i,j]  <- length(common)
+    for (j in 1:npatchFocus) {
+        for (k in (1:npatchFocus)[-j]) {
+        common <- intersect(emigra_t[[k]],  # parche de origen
+                            vec.t[[j]]) # parche de destino
+        migra_t[j, k]  <- length(common)
         #-->migra[i,j] = migración de j --> i
-        emigra_t[[j]] <- setdiff(emigra_t[[j]], common)
+        emigra_t[[k]] <- setdiff(emigra_t[[k]], common)
       }
     }
     vecinos[[t_]] <- vec.t
@@ -941,6 +945,33 @@ register <- function() {
 ####################################
 sdaFun <- function(x, sdaMax=sdaMax, mei=mei[i]) {
   return(x * sdaMax / mei)
+}
+####################################
+####################################
+seeguys <- function(follow, ...) {
+# Only to be runned in debug mode
+  lands <- get('lands', parent.frame())
+  xypos <- get('xypos', parent.frame())  
+  m     <- get('m',     parent.frame())
+  M     <- get('M',     parent.frame())
+  xy    <- get('xy',    parent.frame())
+  i     <- get('i',     parent.frame())
+  xypos[i,] <- xy
+  size  <- 4 * m / M
+  plot(lands, yield=get('yield', parent.frame()),
+       pasto=get('pasto', parent.frame()), ...)
+  points(xypos[,1], xypos[,2], pch=19, cex=size, col=rainbow(nrow(xypos)))
+  points(xypos[,1], xypos[,2], pch=21, cex=size)
+  if (!missing(follow)) {
+    nom <- get('nombres', parent.frame())
+    xy  <- matrix(xypos[nom %in% follow,], ncol=2)
+    text(xy[, 1], xy[, 2], labels=follow, cex=size)
+    for (j in 1:nrow(xy)) {
+      cfa   <- get('cfa', parent.frame())
+      cfa_i <- cbind(cfa[,1] + xy[j, 1], cfa[,2] + xy[j, 2])
+      lines(cfa_i, col='#C8C8C8', lwd=1.5)
+    }
+  }
 }
 ####################################
 ####################################

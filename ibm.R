@@ -116,8 +116,8 @@ ibm <- function(
   } else {
     # Protocolo de importación de simulaciones anteriores
     bag <- importer(import, tfinal)
-    for (i in 1:length(bag))
-      assign(names(bag)[[i]], bag[[i]])
+    for (j in 1:length(bag))
+      assign(names(bag)[[j]], bag[[j]])
   }
 
   indStats <- stats()
@@ -140,8 +140,7 @@ ibm <- function(
 #   tmp <- tempfile()
 
   while (pop[t_ - 1] > 0 && t_ <= tfinal) {
-#     if (t_ == 90) browser()
-    # Atributos individuales según el tamaño corporal:
+      # Atributos individuales según el tamaño corporal:
     icl <- icl0 * m ^ iclExp
     mmd <- mmd0 * m ^ mmdExp
     mmd -> restoMov
@@ -149,7 +148,7 @@ ibm <- function(
     mpd <- mpd0 * m ^ mpdExp
     bmr <- bmr0 * m ^ bmrExp
     mei <- MEI * m / M
-    tmc <- TMC * m / M
+    tmc <- B_c * m / m_c # antes: TMC * m / M
     trs <- trs0 * m ^ trsExp
     psi <- (npsi * mei - tmc) * m_c / E_cr
     if (ptsMode != 'PBB')
@@ -228,13 +227,11 @@ ibm <- function(
 	    dist2visib <- dist2visib[-closer]
 	  }
           puntaje[puntaje <= 0] <- tol
-# 	  if (length(visibles) > 0)
-# 	    write.table(cbind(puntaje[1:(length(puntaje) - 2)], xypasto[visibles,1]), row.names=FALSE, col.names=FALSE, append=TRUE, file='papaya.txt')
-          aaa <- try(choiceNum <- chFun(puntaje, critQuant=chFun.quant))
-	  if (class(aaa) == 'try-error')
-	    browser()
+          choiceNum <- chFun(puntaje, critQuant=chFun.quant)
           optPatch[i] <- visibles[choiceNum]
           dist2patch  <- dist2visib[choiceNum]
+	  if (!is.na(dist2patch) && dist2patch < tol)
+	    donoth <- TRUE
 
           # 1.1.2.1 Elegir quedarse o salir en una dirección al azar
           if (length(visibles) == 0) {
@@ -245,20 +242,15 @@ ibm <- function(
             if (choiceNum == length(visibles) + 2)
               donoth <- TRUE
           }
+	  if (donoth)
+	    break
         } else {
           # Si continua moviéndose desde el turno anterior...
           dist2patch <- distancias(xy, xypasto[optPatch[i],])
         }
 
-        # 1.2.1 Movimiento al azar: ejecución
-        if (goRand) {
-          xyRand <- cfaRand[sample(60, 1),]
-          xy     <- xy + restoMov[i] * xyRand
-          restoMov[i] <- 0
-#           xypos[i,]   <- xy + restoMov[i] * xyRand
-        }
         if (!(goRand || donoth)) {
-          # 1.2.2 Movimiento hacia el parche
+          # 1.2.1 Movimiento hacia el parche
           # Si llega al parche
           if (restoMov[i] - dist2patch > tol) {
             # 1.3 Comer del parche
@@ -283,6 +275,15 @@ ibm <- function(
             xy            <- xy + movVector
             restoMov[i]   <- 0
           }
+        } else {
+	# 1.2.2 Movimiento al azar: ejecución
+	  if (goRand) {
+	    xyRand <- cfaRand[sample(60, 1),]
+	    xy     <- xy + restoMov[i] * xyRand
+	    restoMov[i] <- 0
+	    break
+#           xypos[i,]   <- xy + restoMov[i] * xyRand
+	  }
         }
         cfa_i    <- cbind(cfa[,1] + xy[1], cfa[,2] + xy[2])
         visibles <- inpip(xypasto, cfa_i, bound=TRUE)
@@ -451,6 +452,7 @@ ibm <- function(
 
   # LISTA DE SALIDA
   out <- list(
+    fun=ibm,
     babyBiom=babyBiom,
     births=births,
     deaths=deaths,

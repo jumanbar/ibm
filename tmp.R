@@ -3,14 +3,16 @@ path <- file.path('/home/juan/Dropbox/saves')
 ncor <- 24
 i <- 24
 
-ex <- seq(-1.3, log10(1.2), len=ncor)
+ex <- seq(log10(0.001), log10(10), len=ncor)
 M  <- 10 ^ ex
 tf <- function(i) round(3000 + (2000 / 2.4) * ex[i])
-tfin <- 2500
+tfin <- 10000
 
-run <- ibm(landsDist_=1, landsRdist_=4, levelSeeds=0,
+# M[i] <- 3.229378
+
+run <- ibm(landsDist_=1, landsRdist_=5, levelSeeds=-1, N_0=1,
            mpd0=6, sizeMode="random", als0=5e8,
-           trs0=0.1, yield=700, tfinal=tfin,
+           trs0=0.1, yield=650, tfinal=tfin, chFun=chooseFromAll,
            M=M[i], saveRecord=T, verboso=TRUE)
 nombre <- paste('prueba-M=', round(M[i], 2), '-', Sys.Date(),
                   '.RData', sep='')
@@ -21,6 +23,4 @@ save(run, file=file.path(path, nombre))
 # [13]  0.36746619  0.49619476  0.67001875  0.90473572  1.22167735  1.64964807
 # [19]  2.22754295  3.00788252  4.06158599  5.48441658  7.40568469 10.00000000
 
-
-
-  
+# run <- ibm(landsDist_=1, landsRdist_=5, levelSeeds=1, N_0=1, mpd0=6, sizeMode="random", als0=5e8, trs0=0.1, yield=650, tfinal=tfin, M=10, saveRecord=T, verboso=TRUE)

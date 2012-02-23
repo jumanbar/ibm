@@ -10,14 +10,14 @@ ex <- seq(log10(0.5), log10(3), len=ncor)
 M  <- 10 ^ ex
 tf <- function(i) round(1750 + (2000 / 2.4) * ex[i])
 
-for (i in 1:length(M)) {
+for (i in 7:length(M)) {
   cat('Va por el', i, 'de', length(M), '\n')
   run <- ibm(landsDist_=1, landsRdist_=10, levelSeeds=0,
              mpd0=6, sizeMode="random", als0=5e8,
              trs0=0.1, yield=650, tfinal=tf(i),
              M=M[i], saveRecord=FALSE, verboso=TRUE)
   nombre <- paste('corrida-M=', round(M[i], 2), '-', Sys.Date(),
-                  '.RData', sep='')
+                  '-mandinga.RData', sep='')
   save(run, file=file.path(path, nombre))
 }
 
