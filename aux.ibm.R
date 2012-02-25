@@ -628,7 +628,6 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
   dmin    <- ifelse(length(pos) > 1, min(diff(pos)), 1)
   if (x$parms$saveRecord)
     rec     <- x$record
-  maxname <- max(x$nombres)
   yield   <- x$parms$yield
 
   ini   <- ifelse(missing(from), 1, from)
@@ -675,7 +674,7 @@ plot.ibm <- function(x, kind='pop', outdir='default', nmax=500,
     noise2 <- rnorm(nrow(rec), 0, dmin * noiseFactor)
     tamano <- (rec$m / M + 1) * resFactor
     points(rec$x + noise1, rec$y + noise2,
-	   pch=19, cex=tamano, col=rainbow(maxname)[rec$name])
+	   pch=19, cex=tamano, col=rainbow(max(rec$name))[rec$name])
     points(rec$x + noise1, rec$y + noise2,
 	   pch=21, cex=tamano, col=1)
     if (!is.null(follow)) {
