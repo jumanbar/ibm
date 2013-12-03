@@ -75,6 +75,8 @@ chooseRandom <- function(puntaje, critQuant=0.9) {
 }
 ####################################
 ####################################
+# Cambiar a distancia Manhattan:
+# d = abs(xyParches[,1] - xyInd[1]) + abs(xyParches[,2] - xyInd[2])
 distancias <- function(xyInd, xyParches) {
   if (length(xyParches) == 2)
     dim(xyParches) <- c(1, 2)
